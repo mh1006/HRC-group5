@@ -2,8 +2,15 @@ import os
 from google.cloud import dialogflow
 import sounddevice as sd
 import numpy as np
+import time
+import serial
 
+# Check which COM you are conected to in the arduino IDE
+arduino = serial.Serial(port='COM7', baudrate=115200, timeout=.1)
+
+PROJECT_ID = 'project-631e036d-75af-4f9e-b4b'
 credential_path = (r'project-631e036d-75af-4f9e-b4b-44751f4edea7.json')
+
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credential_path
 
 def detect_intent_texts(project_id, session_id, texts, language_code):
@@ -85,7 +92,16 @@ def detect_intent_mic(project_id, session_id, language_code):
     print("Confidence:", response.query_result.intent_detection_confidence)
     print("Response:", response.query_result.fulfillment_text)
 
+def arduino_write_read(x):
+    arduino.write(bytes(x, 'utf-8'))
+    time.sleep(0.05)
+    data = arduino.readline()
+    return data
+
+
 if __name__ == '__main__':
     while(True):
-     detect_intent_mic('project-631e036d-75af-4f9e-b4b','3', "en-GB")
-
+        # detect_intent_mic(PROJECT_ID,'3', "en-GB")
+        num = input("Enter a number to send to the arduino: ")  # Taking input from user
+        value = arduino_write_read(num)
+        print(value)  # printing the output value from the arduino
