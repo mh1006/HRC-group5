@@ -102,6 +102,7 @@ def arduino_write_read(x):
 if __name__ == '__main__':
     while(True):
         # detect_intent_mic(PROJECT_ID,'3', "en-GB")
-        num = input("Enter a number to send to the arduino: ")  # Taking input from user
-        value = arduino_write_read(num)
+        # Commands should be formatted as E.G.: "EMOTION,SAD;SERVO,10;."
+        Input_text = input("Enter a command to send to the arduino: ")  # Taking input from user
+        value = arduino_write_read(Input_text)
         print(value)  # printing the output value from the arduino
