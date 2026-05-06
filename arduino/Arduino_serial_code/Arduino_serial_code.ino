@@ -1,23 +1,44 @@
-int x;
-long timer;
+#include <Wire.h>
+#include "config.h"
+#include "sensor.h"
+#include "movement.h"
 
-bool updating_actuators;
 
-// Libraries
-#include <Adafruit_NeoPixel.h>
+// --- Global Variable Definitions ---
 
-// Constants
-#define LED_PIN       4
-#define NUMPIXELS    74
-
-// Variables
 Adafruit_NeoPixel pixels(NUMPIXELS, LED_PIN);
-
-int LED_BRIGHTNESS = 8;
-
-enum Emotion {NEUTRAL, SUPRISED, HAPPY, ANGRY, SAD};
+HUSKYLENS huskylens;
+HUSKYLENSResult face;
+Servo servo1, servo2;
 Emotion emotion = NEUTRAL;
+UserBehavior current_user_behavior = NONE;
+bool face_detected = false;
+int LED_BRIGHTNESS = 2;
 
+// Adjust these if the head is tilted at the start
+float servo1_center = 100.0; // Left/Right center 
+float servo2_center = 90.0; // Up/Down center
+
+// Adjust these if tracking direction is reversed
+float tracking_x = -80.0; // Change to 50.0 to reverse Left/Right
+float tracking_y = 70.0;  // Change to -50.0 to reverse Up/Down
+
+// Jitter control
+float tracking_deadzone = 5.0;  // Only move if face moves > 2 degrees
+float smoothing_speed = 0.05;   // Lower = smoother but slower (Try 0.03 to 0.08)
+
+// Servo val
+float servo1_pos = servo1_center, servo2_pos = servo2_center;
+float servo1_target = servo1_center, servo2_target = servo2_center;
+float servo1_speed = 0, servo2_speed = 0;
+
+// Behavior Analysis Variables
+int prev_face_width = 0;
+int prev_face_x = 0;
+unsigned long behavior_check_timer = 0;
+
+long timer;
+long timer_comm;
 
 // We store the different eyes as a byte array
 // You can use https://sjoerd.tech/eyes/ to design more eye patterns
@@ -99,24 +120,37 @@ void setup() {
   // Initialize the leds
   pixels.begin();
 
-  updating_actuators = true;
+// Initialize HuskyLens (via I2C)
+  Wire.begin();
+  while (!huskylens.begin(Wire)) {
+      Serial.println(F("HuskyLens failed to start! Please check the I2C connection."));
+      delay(1000);
+  }
+
+  // Initialize Servos
+  servo1.attach(SERVO_PIN_1);
+  servo2.attach(SERVO_PIN_2);
+  servo1.write(servo1_center);
+  servo2.write(servo2_center);
 }
 
 void  loop() {
 
-   // Every 10 milliseconds, update the commication with the PC
-  if (millis() - timer >= 10){
+  // Every 20 milliseconds, update the hardware (Camera, Servos, Eyes)
+  if (millis() - timer >= 20){
     timer = millis();
-    communication();
-    if(updating_actuators){
-      update_actuators();
-    }
-    updating_actuators = !updating_actuators;
+    husky_lens();    // Grab face position
+    analyze_user_behavior();
+    run_emotions();  // Calculate targets for eyes and servos
+    move_servos();   // Smoothly move servos to the targets
   }
-}
 
-void update_actuators() {
-  run_emotions();
+  // Every 10 milliseconds, check for PC communication (Python)
+  if (millis() - timer_comm >= 10){
+    timer_comm = millis();
+    communication();
+  }
+
 }
 
 // ============================================
@@ -133,64 +167,61 @@ void run_emotions(){
       else if (millis() % 5000 < 450) display_eyes(blink1, 125);
       else display_eyes(neutral, 125);
 
-      // if (face_detected) {
-      //   servo1_target = 90.0 + float(face.xCenter - 160) / 320.00 * -50.00;
-      //   servo2_target = 90.0 + float(face.yCenter - 120) / 240.00 * 50.00;
-      // }
+      if (face_detected) {
+        if (current_user_behavior == APPROACHING) {
+          Serial.println("Someone is coming! Dancing!");
+          emotion = HAPPY;
+        } 
+        else if (current_user_behavior == PASSING) {
+          Serial.println("Passive: Someone just walking by.");
+          apply_tracking(false);
+        }
+        else if (current_user_behavior == PASSING) {
+          Serial.println("Boring");
+        }
+      }
       break;
+
     case HAPPY:
       display_eyes(happy, 80);
       
-      // servo1_target = 90 + 10.0 * sin(millis() / 500.00);
-      // servo2_target = 80 + 15.0 * cos(millis() / 400.00);
+      if (face_detected) {
+        // Tracking + Dancing
+        apply_tracking(true);
+
+        // Auto-revert when the person moves back
+        if (face.width < 80) {
+          Serial.println("AHH. Why leaving！");
+          emotion = NEUTRAL;
+        }
+      } else {
+        // Revert if face is lost
+        emotion = NEUTRAL;
+      }
       break;
     case SAD:
-      display_eyes(sad, 150);
-      
+      display_eyes(sad, 150);  
       // servo1_target = 90 + 3.0 * sin(millis() / 400.00);
       // servo2_target = 120 + 20.0 * cos(millis() / 500.00);
       break;
+
     case ANGRY:
       display_eyes(angry, 0);
-
       // servo1_target = 90 + 10.0 * sin(millis() / 250.00);
       // servo2_target = 110 + 15.0 * cos(millis() / 175.00);
       break;
+
     case SUPRISED:
       display_eyes(suprised, 125);
-
       // servo1_target = 90;
       // servo2_target = 80 + 10.0 * cos(millis() / 500.00);
       break;
+      
   }
 
   pixels.show();
 }
 
-// ============================================
-// ------------------- Eyes -------------------
-// ============================================
-
-void display_eyes(byte arr[], int hue){
-   display_eye(arr, hue, true);
-   display_eye(arr, hue, false);
-}
-
-void display_eye(byte arr[], int hue, bool left) {
-  // We will draw a circle on the display
-  // It is a hexagonal matrix, which means we have to do some math to know where each pixel is on the screen
-
-  int rows[] = {4, 5, 6, 7, 6, 5, 4};      // The matrix has 4, 5, 6, 7, 6, 5, 4 rows.
-  int NUM_COLUMNS = 7;                     // There are 7 columns
-  int index = (left) ? 0 : 37;             // If we draw the left eye, we have to add an offset of 37 (4+5+6+7+6=5+4)
-  for (int i = 0; i < NUM_COLUMNS; i++) {
-    for (int j = 0; j < rows[i]; j++) {
-      int brightness = LED_BRIGHTNESS * bitRead(arr[i], (left) ? rows[i] - 1 - j : j);
-      pixels.setPixelColor(index, pixels.ColorHSV(hue * 256, 255, brightness));
-      index ++;
-    }
-  }
-}
 
 // ============================================
 // ----------- Python communication -----------
