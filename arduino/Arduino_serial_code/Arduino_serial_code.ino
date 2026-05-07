@@ -157,6 +157,14 @@ void  loop() {
 // ----------------- Emotions -----------------
 // ============================================
 
+Emotion string_to_emotion(String emotion_string){
+    if(emotion_string == "SAD") return SAD;
+    else if(emotion_string == "SURPRISED") return SUPRISED;
+    else if(emotion_string == "HAPPY") return HAPPY;
+    else if(emotion_string == "ANGRY") return ANGRY;
+    return NEUTRAL;
+}
+
 void run_emotions(){
   pixels.clear();  
 
@@ -259,11 +267,7 @@ void communication() {
       if (type == "EYES") Serial.print("Setting eyes to: " + value + "\n");
       if (type == "EMOTION") {
         Serial.print("Setting emotion to: " + value + "\n");
-        if(value == "NEUTRAL") emotion = NEUTRAL;
-        else if(value == "SURPRISED") emotion = SUPRISED;
-        else if(value == "HAPPY") emotion = HAPPY;
-        else if(value == "ANGRY") emotion = ANGRY;
-        else emotion = SAD;
+        emotion = string_to_emotion(value);
         }
       }
     }
