@@ -2,6 +2,7 @@ from enum import Enum
 import time
 from interaction.intent import Intent
 from interaction.dialogflow_handler import trigger_event, detect_intent_mic
+from playsound import playsound
 
 # check if silent
 retries = 0
@@ -31,7 +32,7 @@ def execute_state(state, project_id, session_id, language_code):
                 
             case State.ATTRACTING:
                 print("Entered Attracting state")
-                # TODO: play sound to attract attention
+                playsound('sounds/chameleon_sound.mp3')
                 return State.LISTENING
             
             case State.LISTENING:
