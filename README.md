@@ -1,0 +1,1 @@
+To install required python packages run `pip install -r requirements.txt`

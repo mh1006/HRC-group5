@@ -1,0 +1,5 @@
+google-cloud-dialogflow
+numpy==2.4.4
+pyserial==3.5
+sounddevice==0.5.5
+playsound==1.2.2
