@@ -1,6 +1,7 @@
 from enum import Enum
 import time
-from interaction.intent import Intent, detect_intent_mic
+from interaction.intent import Intent
+from interaction.dialogflow_handler import trigger_event, detect_intent_mic
 
 class State(Enum):
     """
@@ -12,31 +13,43 @@ class State(Enum):
     PLAYING = "PLAYING"      # game started
     CALMING = "CALMING"      # calm child if stress detected
     ERROR = "ERROR"          # fallback
-    
-def handle_intent(intent):
-    match intent:
-        case Intent.ENGAGEMENT_INTENT.value:
-            return State.ENGAGED
-        case Intent.PLAY_INTENT.value:
-            return State.PLAYING
-        case Intent.DISTRESS_INTENT.value:
-            return State.CALMING
-        case Intent.FALLBACK_INTENT.value:
-            return State.ERROR
         
 def execute_state(state, project_id, session_id, language_code):
     match state:
+            # case State.IDLE:
+            #     print("Entered IDLE state!")
+            #     # TODO: detect if someone is passing by?
+            #     # TODO: play sound to attract attention
+            #     time.sleep(3)
+            #     return State.LISTENING
             case State.IDLE:
                 print("Entered IDLE state!")
                 # TODO: detect if someone is passing by?
-                # TODO: play sound to attract attention
-                time.sleep(3)
-                return State.LISTENING
+                approaches = True
+                if approaches:
+                    time.sleep(3)
+
+                    trigger_event(
+                        project_id,
+                        session_id,
+                        event_name="ENGAGEMENT_TRIGGER"
+                    )
+
+                    return State.LISTENING
 
             case State.LISTENING:
-                print("Entered LISTENING state!")
                 result = detect_intent_mic(project_id, session_id, language_code)
-                return handle_intent(result["intent_name"])
+                intent_name = result["intent_name"]
+                
+                if not intent_name:
+                    return State.ERROR  # or State.LISTENING to retry
+                
+                try:
+                    intent = Intent(intent_name)
+                    return intent.to_state()
+                except ValueError:
+                    print(f"Unknown intent: '{intent_name}'")
+                    return State.ERROR
             
             case State.ENGAGED:
                 print("Entered ENGAGED state!")
