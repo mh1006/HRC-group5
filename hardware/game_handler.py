@@ -1,6 +1,6 @@
 import random
 import time
-from arduino_controller import ArduinoController, Emotion
+from hardware.arduino_controller import ArduinoController, Emotion
 
 COLORS = ["RED", "BLUE", "GREEN", "YELLOW"]
 
