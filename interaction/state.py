@@ -52,10 +52,13 @@ def execute_state(state, project_id, session_id, language_code):
                 intent_name = result["intent_name"]
                 
                 if not intent_name:
-                    return State.ERROR  # or State.LISTENING to retry
+                    return State.LISTENING  # or State.LISTENING to retry
                 
                 try:
                     intent = Intent(intent_name)
+                    # if child says something but input not recognized as any of the intents, assume that engaged
+                    if intent == Intent.FALLBACK_INTENT and result["user_input"]:
+                        return State.ENGAGED
                     return intent.to_state()
                 except ValueError:
                     print(f"Unknown intent: '{intent_name}'")
@@ -85,13 +88,13 @@ def execute_state(state, project_id, session_id, language_code):
                 return State.IDLE
                 
             case State.ERROR:
+                print("Entered ERROR state!")
                 retries += 1
                 if retries >=5:
                     print("Interaction ended")
                     # arduino.on_idle()
                     retries = 0
                     return State.IDLE
-                print("Entered ERROR state!")
                 # arduino.on_error()          # ANGRY eyes as visual feedback
 
                 print("Retrying...")

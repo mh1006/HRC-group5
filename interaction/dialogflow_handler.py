@@ -56,6 +56,7 @@ def detect_intent_mic(project_id, session_id, language_code):
     print("Response:", response.query_result.fulfillment_text)
     
     return {"intent_name": response.query_result.intent.display_name,
+            "user_input": response.query_result.query_text,
             "robot_response": response.query_result.fulfillment_text}
     
 def record_audio(duration=5, sample_rate=16000):
