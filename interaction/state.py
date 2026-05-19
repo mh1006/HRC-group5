@@ -67,8 +67,13 @@ def execute_state(state, project_id, session_id, language_code):
             case State.ENGAGED:
                 print("Entered ENGAGED state!")
                 retries = 0
+                engagement_count += 1  # track how many times child has responded
                 # arduino.on_engaged()        # HAPPY eyes + face tracking + dance
                 # TODO: play sound
+                retries = 0
+                if engagement_count >= 2:
+                    engagement_count = 0
+                    return State.PLAYING   # they're engaged enough, start the game
                 return State.LISTENING
                 
             case State.PLAYING:
