@@ -43,4 +43,34 @@ void analyze_user_behavior() {
   }
 }
 
+void check_buttons() {
+  bool stateRed = digitalRead(BTN_RED_PIN);
+  bool stateBlue = digitalRead(BTN_BLUE_PIN);
+  bool stateGreen = digitalRead(BTN_GREEN_PIN);
+  bool stateYellow = digitalRead(BTN_YELLOW_PIN);
+
+  // High to Low --> pressed
+  if (stateRed == LOW && lastStateRed == HIGH) { 
+    Serial.println("BTN,RED"); 
+    delay(30); 
+  }
+  if (stateBlue == LOW && lastStateBlue == HIGH) { 
+    Serial.println("BTN,BLUE"); 
+    delay(30); 
+  }
+  if (stateGreen == LOW && lastStateGreen == HIGH) { 
+    Serial.println("BTN,GREEN"); 
+    delay(30); 
+  }
+  if (stateYellow == LOW && lastStateYellow == HIGH) { 
+    Serial.println("BTN,YELLOW"); 
+    delay(30); 
+  }
+
+  lastStateRed = stateRed;
+  lastStateBlue = stateBlue;
+  lastStateGreen = stateGreen;
+  lastStateYellow = stateYellow;
+}
+
 #endif
