@@ -29,7 +29,10 @@ class ColorGame:
         target_color = random.choice(COLORS)
         time_limit = max(2.0, self.time_limit - self.round * 0.3)  # gets harder
 
-        # Tell Arduino to show the color
+        # Flush stale button presses from the previous round
+        self.arduino.drain_log()
+
+        # Tell Arduino to show the color (activates game_mode on Arduino side)
         self.arduino.send(("EYES_COLOR", target_color))
 
         # Wait for button press, with timeout
@@ -43,6 +46,7 @@ class ColorGame:
                     return True
                 else:
                     return False    # wrong button
+            time.sleep(0.01)        # avoid busy-wait
 
         return False                # timeout counts as wrong
 

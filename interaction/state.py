@@ -8,6 +8,7 @@ from hardware.game_handler import ColorGame
 
 # check if silent
 retries = 0
+engagement_count = 0
 
 # ── Init Arduino once at module level ─────────────────────────────────────────
 # Change port to match your system:
@@ -29,7 +30,7 @@ class State(Enum):
     ERROR = "ERROR"          # fallback
        
 def execute_state(state, project_id, session_id, language_code):
-    global retries
+    global retries, engagement_count
     match state:
             case State.IDLE:
                 print("Entered IDLE state!")
