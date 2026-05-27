@@ -39,6 +39,12 @@ unsigned long behavior_check_timer = 0;
 
 long timer;
 long timer_comm;
+// Color Game
+bool color_game_active = false;
+bool lastStateRed = HIGH;
+bool lastStateBlue = HIGH;
+bool lastStateGreen = HIGH;
+bool lastStateYellow = HIGH;
 
 // We store the different eyes as a byte array
 // You can use https://sjoerd.tech/eyes/ to design more eye patterns
@@ -117,6 +123,11 @@ void setup() {
   Serial.begin(115200);
   Serial.setTimeout(1);
 
+  // Color Game Button Setup
+  pinMode(BTN_RED_PIN, INPUT_PULLUP);
+  pinMode(BTN_BLUE_PIN, INPUT_PULLUP);
+  pinMode(BTN_GREEN_PIN, INPUT_PULLUP);
+  pinMode(BTN_YELLOW_PIN, INPUT_PULLUP);
   // Initialize the leds
   pixels.begin();
 
@@ -135,6 +146,8 @@ void setup() {
 }
 
 void  loop() {
+  
+  check_buttons();
 
   // Every 20 milliseconds, update the hardware (Camera, Servos, Eyes)
   if (millis() - timer >= 20){
@@ -177,7 +190,7 @@ void run_emotions(){
 
       if (face_detected) {
         if (current_user_behavior == APPROACHING) {
-          Serial.println("Someone is coming! Dancing!");
+          Serial.println("BEHAVIOR,APPROACHING");
           emotion = HAPPY;
         } 
         else if (current_user_behavior == PASSING) {

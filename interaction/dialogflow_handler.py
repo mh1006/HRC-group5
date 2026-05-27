@@ -1,4 +1,3 @@
-from google.cloud import dialogflow_v2 as dialogflow
 from google.cloud import dialogflow
 import sounddevice as sd
 
@@ -47,15 +46,20 @@ def detect_intent_mic(project_id, session_id, language_code):
         input_audio=input_audio,
     )
 
-    response = session_client.detect_intent(request=request)
+    try:
+        response = session_client.detect_intent(request=request)
+    except Exception as e:
+        print(f"Dialogflow error: {e}")
+        return {"intent_name": None, "user_input": None, "robot_response": None}
 
     print("=" * 20)
     print("Query text:", response.query_result.query_text)
     print("Detected intent:", response.query_result.intent.display_name)
     print("Confidence:", response.query_result.intent_detection_confidence)
     print("Response:", response.query_result.fulfillment_text)
-    
+
     return {"intent_name": response.query_result.intent.display_name,
+            "user_input": response.query_result.query_text,
             "robot_response": response.query_result.fulfillment_text}
     
 def record_audio(duration=5, sample_rate=16000):

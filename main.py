@@ -19,8 +19,11 @@ os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = credential_path
 
 if __name__ == '__main__':
     state = State.IDLE
-    while(True):
-        # state = execute_state(state, PROJECT_ID, SESSION_ID, LANGUAGE_CODE)
+    try:
+        while True:
+            state = execute_state(state, PROJECT_ID, SESSION_ID, LANGUAGE_CODE)
+    except KeyboardInterrupt:
+        print("\nShutting down.")
                 
         # Commands should be formatted as E.G.: "EMOTION,SAD;SERVO,10;."
         Input_text = input("Enter a command to send to the arduino: ")  # Taking input from user
