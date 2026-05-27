@@ -37,6 +37,13 @@ def execute_state(state, project_id, session_id, language_code):
                 # TODO: detect if someone is passing by?
                 # arduino.on_idle()           # → NEUTRAL eyes, auto-blink on Arduino
 
+                # arduino.on_idle()
+                # for line in arduino.drain_log():
+                #     if line == "BEHAVIOR,APPROACHING":
+                #         return State.ATTRACTING
+                # time.sleep(0.1)
+                # return State.IDLE
+                
                 approaches = True
                 if approaches:
                     time.sleep(3)

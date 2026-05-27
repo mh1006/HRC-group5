@@ -190,7 +190,7 @@ void run_emotions(){
 
       if (face_detected) {
         if (current_user_behavior == APPROACHING) {
-          Serial.println("Someone is coming! Dancing!");
+          Serial.println("BEHAVIOR,APPROACHING");
           emotion = HAPPY;
         } 
         else if (current_user_behavior == PASSING) {
