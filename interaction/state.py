@@ -53,7 +53,8 @@ def execute_state(state, project_id, session_id, language_code):
                 intent_name = result["intent_name"]
                 
                 if not intent_name:
-                    return State.LISTENING  # or State.LISTENING to retry
+                    time.sleep(1)
+                    return State.LISTENING
                 
                 try:
                     intent = Intent(intent_name)
@@ -71,7 +72,6 @@ def execute_state(state, project_id, session_id, language_code):
                 engagement_count += 1  # track how many times child has responded
                 # arduino.on_engaged()        # HAPPY eyes + face tracking + dance
                 # TODO: play sound
-                retries = 0
                 if engagement_count >= 2:
                     engagement_count = 0
                     return State.PLAYING   # they're engaged enough, start the game
@@ -80,9 +80,10 @@ def execute_state(state, project_id, session_id, language_code):
             case State.PLAYING:
                 print("Entered PLAYING state!")
                 retries = 0
-                # arduino.on_playing()        # stay HAPPY; 
+                # arduino.on_playing()
                 # game = ColorGame(arduino)
                 # won = game.run()
+                # Uncomment the three lines above once arduino is initialised
                 return State.IDLE
                 
             case State.CALMING:

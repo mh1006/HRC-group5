@@ -32,8 +32,8 @@ class ColorGame:
         # Flush stale button presses from the previous round
         self.arduino.drain_log()
 
-        # Tell Arduino to show the color (activates game_mode on Arduino side)
-        self.arduino.send(("EYES_COLOR", target_color))
+        # Tell Arduino to show the color
+        self.arduino.set_game_color(target_color)
 
         # Wait for button press, with timeout
         deadline = time.time() + time_limit
@@ -68,21 +68,3 @@ class ColorGame:
     def _on_win(self):
         self.arduino.set_emotion(Emotion.HAPPY)
         # TODO: play victory sound
-        
-# Usage example on arduino side
-# // In communication(), add a new command type:
-# if (type == "EYES_COLOR") {
-#     if      (value == "RED")    display_eyes(neutral, 0);    // hue 0   = red
-#     else if (value == "BLUE")   display_eyes(neutral, 170);  // hue 170 = blue
-#     else if (value == "GREEN")  display_eyes(neutral, 85);   // hue 85  = green
-#     else if (value == "YELLOW") display_eyes(neutral, 43);   // hue 43  = yellow
-#     pixels.show();
-# }
-# 
-# // In loop(), read buttons and report back:
-# void check_buttons() {
-#     if (digitalRead(BTN_RED_PIN)    == LOW) Serial.println("BTN,RED");
-#     if (digitalRead(BTN_BLUE_PIN)   == LOW) Serial.println("BTN,BLUE");
-#     if (digitalRead(BTN_GREEN_PIN)  == LOW) Serial.println("BTN,GREEN");
-#     if (digitalRead(BTN_YELLOW_PIN) == LOW) Serial.println("BTN,YELLOW");
-# }

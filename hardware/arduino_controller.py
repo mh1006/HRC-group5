@@ -33,9 +33,10 @@ class Emotion(str, Enum):
 
 
 class CommandType(str, Enum):
-    EMOTION = "EMOTION"
-    EYES    = "EYES"
-    SERVO   = "SERVO"
+    EMOTION    = "EMOTION"
+    EYES       = "EYES"
+    SERVO      = "SERVO"
+    EYES_COLOR = "EYES_COLOR"  # game color display: RED | BLUE | GREEN | YELLOW
 
 
 # ── Controller ─────────────────────────────────────────────────────────────────
@@ -126,6 +127,14 @@ class ArduinoController:
         pattern: any label your sketch will recognise, e.g. "happy", "sad"
         """
         self.send((CommandType.EYES, pattern))
+
+    def set_game_color(self, color: str):
+        """
+        Show a solid color on the robot's eyes during the color game.
+        color: "RED" | "BLUE" | "GREEN" | "YELLOW"
+        Arduino must handle EYES_COLOR in its communication() function.
+        """
+        self.send((CommandType.EYES_COLOR, color))
 
     def set_servo(self, angle: int):
         """
