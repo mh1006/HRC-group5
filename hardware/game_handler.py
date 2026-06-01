@@ -194,9 +194,7 @@ class SequenceGame:
         for color in sequence:
             self.arduino.set_game_color(color)
             time.sleep(self.COLOR_SHOW_DURATION)
-            # Gap between colors: return to SURPRISED so two identical colors
-            # don't blur into one long flash
-            self.arduino.set_emotion(Emotion.SURPRISED)
+            self.arduino.set_game_color("OFF")  # brief dark pause separates consecutive identical colors
             time.sleep(self.COLOR_GAP_DURATION)
 
     def _signal_your_turn(self):

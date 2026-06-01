@@ -93,6 +93,8 @@ def execute_state(state, project_id, session_id, language_code, arduino):
                 # TODO: uncomment when arduino is ready
                 # arduino.on_playing()
                 # won = FullGame(arduino).run()
+                # if not won:
+                #     return State.CALMING
                 # Uncomment the two lines above once arduino is initialised
                 return State.IDLE
                 
@@ -103,7 +105,7 @@ def execute_state(state, project_id, session_id, language_code, arduino):
                 # arduino.on_calming()        # SAD eyes (mirrors calm)
                 #TODO: play sound
                 #TODO: game?/send to arduino
-                return State.ATTRACTING
+                return State.IDLE
                 
             case State.ERROR:
                 print("Entered ERROR state!")
