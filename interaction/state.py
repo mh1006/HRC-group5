@@ -4,7 +4,7 @@ from interaction.intent import Intent
 from interaction.dialogflow_handler import trigger_event, detect_intent_mic
 from playsound import playsound
 from hardware.arduino_controller import ArduinoController
-from hardware.game_handler import ColorGame
+from hardware.game_handler import FullGame
 
 # check if silent
 retries = 0
@@ -29,14 +29,14 @@ class State(Enum):
     CALMING = "CALMING"      # calm child if stress detected
     ERROR = "ERROR"          # fallback
        
-def execute_state(state, project_id, session_id, language_code):
+def execute_state(state, project_id, session_id, language_code, arduino):
     global retries, engagement_count
     match state:
             case State.IDLE:
                 print("Entered IDLE state!")
-                # TODO: detect if someone is passing by?
-                # arduino.on_idle()           # → NEUTRAL eyes, auto-blink on Arduino
-
+                # TODO: notify from arduino when someone is approaching
+                
+                # TODO: uncomment when arduino is ready
                 # arduino.on_idle()
                 # for line in arduino.drain_log():
                 #     if line == "BEHAVIOR,APPROACHING":
@@ -44,6 +44,7 @@ def execute_state(state, project_id, session_id, language_code):
                 # time.sleep(0.1)
                 # return State.IDLE
                 
+                # TODO: delete when arduino is ready
                 approaches = True
                 if approaches:
                     time.sleep(3)
@@ -51,6 +52,7 @@ def execute_state(state, project_id, session_id, language_code):
                 
             case State.ATTRACTING:
                 print("Entered Attracting state")
+                # TODO: uncomment when arduino is ready
                 # arduino.on_attracting()
                 playsound('sounds/chameleon_sound.mp3')
                 return State.LISTENING
@@ -77,6 +79,7 @@ def execute_state(state, project_id, session_id, language_code):
                 print("Entered ENGAGED state!")
                 retries = 0
                 engagement_count += 1  # track how many times child has responded
+                # TODO: uncomment when arduino is ready
                 # arduino.on_engaged()        # HAPPY eyes + face tracking + dance
                 # TODO: play sound
                 if engagement_count >= 2:
@@ -87,29 +90,32 @@ def execute_state(state, project_id, session_id, language_code):
             case State.PLAYING:
                 print("Entered PLAYING state!")
                 retries = 0
+                # TODO: uncomment when arduino is ready
                 # arduino.on_playing()
-                # game = ColorGame(arduino)
-                # won = game.run()
-                # Uncomment the three lines above once arduino is initialised
+                # won = FullGame(arduino).run()
+                # Uncomment the two lines above once arduino is initialised
                 return State.IDLE
                 
             case State.CALMING:
                 print("Entered CALMING state!")
                 retries = 0
+                # TODO: uncomment when arduino is ready
                 # arduino.on_calming()        # SAD eyes (mirrors calm)
                 #TODO: play sound
                 #TODO: game?/send to arduino
-                return State.IDLE
+                return State.ATTRACTING
                 
             case State.ERROR:
                 print("Entered ERROR state!")
                 retries += 1
                 if retries >=5:
                     print("Interaction ended")
+                    # TODO: uncomment when arduino is ready
                     # arduino.on_idle()
                     retries = 0
                     return State.IDLE
-                # arduino.on_error()          # ANGRY eyes as visual feedback
+                # TODO: uncomment when arduino is ready
+                # arduino.on_error()          # ANGRY eyes?
 
                 print("Retrying...")
                 
