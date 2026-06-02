@@ -14,12 +14,24 @@ float servo_horizontal_pos = servo_horizontal_default_pos, servo_vertical_pos = 
 float servo_horizontal_target = servo_horizontal_pos, servo_vertical_target = servo_vertical_pos;
 float servo_horizontal_speed = 0, servo_vertical_speed = 0;
 
+// Huskylens
+HUSKYLENS huskylens;
+HUSKYLENSResult face;
+bool face_detected = false;
+
 // Emotions
 //Emotion emotion = NEUTRAL;
 
 void setup() {
   Serial.begin(115200);
   Serial.setTimeout(1);
+
+  // Wire is for communication with I2C ports, which is what huskylens should be plugged into.
+  Wire.begin();
+  while (!huskylens.begin(Wire)) {
+      Serial.println(F("HuskyLens failed to start! Please check the I2C connection."));
+      delay(1000);
+  }
 
   servo_horizontal.attach(SERVO_PIN_1);
   servo_vertical.attach(SERVO_PIN_2);
@@ -31,10 +43,12 @@ void loop() {
   if (millis() - timer >= 20){
     timer = millis();
     move_servos();
+    husky_lens();
   }
   if (millis() - timer_comm >= 10){
     timer_comm = millis();
-    communication();
+    receive_communication();
+    send_communication();
   }
 }
 
@@ -54,7 +68,7 @@ void loop() {
 // ----------- Python communication -----------
 // ============================================
 
-void communication() {
+void receive_communication() {
   char val = ' ';
   String data = "";
   if (Serial.available()) {
@@ -96,4 +110,17 @@ void communication() {
       //   }
       }
     }
+}
+
+void send_communication(){
+  if (face_detected){
+      String message_json = "{\"detected_face\": {";
+      // Serial.println(String() + F("Block:xCenter=") + result.xCenter + F(",yCenter=") + result.yCenter + F(",width=") + result.width + F(",height=") + result.height + F(",ID=") + result.ID);
+      message_json += "\"xCenter\": " + String(face.xCenter) + ",";
+      message_json += "\"yCenter\": " + String(face.yCenter) + ",";
+      message_json += "\"width\": " + String(face.width) + ",";
+      message_json += "\"height\": " + String(face.height);
+      message_json += "}}";
+      Serial.println(message_json);
+  }
 }
