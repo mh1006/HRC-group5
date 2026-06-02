@@ -1,5 +1,6 @@
 #include "config.h"
 #include "movement.h"
+#include "vision.h"
 
 // Timing of loop
 long timer;
