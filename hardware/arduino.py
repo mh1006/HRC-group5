@@ -10,3 +10,9 @@ class Arduino:
         time.sleep(0.05)
         data = self.arduino.readline()
         return data
+
+    def read(self):
+        data = self.arduino.readline()
+        if data:
+            return data
+        return None
