@@ -20,6 +20,12 @@ class State(Enum):
     ERROR = "ERROR"          # fallback
 
 
+# Face bounding-box width (pixels) at which a passerby is considered "close".
+# HuskyLens resolution is 320×240; tune this based on the robot's physical setup.
+# TODO: probably needs tuning 
+FACE_PROXIMITY_THRESHOLD = 80
+
+
 class StateMachine:
     def __init__(self, project_id, session_id, language_code, arduino):
         self.project_id = project_id
@@ -34,21 +40,18 @@ class StateMachine:
         match state:
             case State.IDLE:
                 print("Entered IDLE state!")
-                # TODO: notify from arduino when someone is approaching
-
                 # TODO: uncomment when arduino is ready
                 # self.arduino.on_idle()
-                # for line in self.arduino.drain_log():
-                #     if line == "BEHAVIOR,APPROACHING":
-                #         return State.ATTRACTING
-                # time.sleep(0.1)
-                # return State.IDLE
-
-                # TODO: delete when arduino is ready
-                approaches = True
-                if approaches:
-                    time.sleep(3)
-                    return State.ATTRACTING
+                if self.arduino:
+                    for line in self.arduino.drain_log():
+                        face = self.arduino.parse_face(line)
+                        if face and face["width"] >= FACE_PROXIMITY_THRESHOLD:
+                            return State.ATTRACTING
+                    time.sleep(0.1)
+                    return State.IDLE
+                # Simulation fallback when no Arduino connected
+                time.sleep(3)
+                return State.ATTRACTING
 
             case State.ATTRACTING:
                 print("Entered Attracting state")

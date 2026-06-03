@@ -20,6 +20,7 @@ import threading
 import time
 from queue import Queue, Empty
 from enum import Enum
+import json
 
 
 # ── Mirror the Arduino enums so Python stays in sync ──────────────────────────
@@ -150,6 +151,13 @@ class ArduinoController:
         """
         pairs = [(k.upper(), str(v)) for k, v in kwargs.items()]
         self.send(*pairs)
+        
+    def parse_face(self, line: str) -> dict | None:
+        """Parse a face JSON line from the Arduino. Returns the face dict or None."""
+        try:
+            return json.loads(line).get("detected_face")
+        except (json.JSONDecodeError, AttributeError):
+            return None
 
     # ── Convenience wrappers for each state in your state machine ──────────────
 
