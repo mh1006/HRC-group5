@@ -1,6 +1,7 @@
 #include "config.h"
 #include "movement.h"
 #include "vision.h"
+#include "led_matrices.h"
 
 // Timing of loop
 long timer;
@@ -18,32 +19,127 @@ float servo_horizontal_speed = 0, servo_vertical_speed = 0;
 HUSKYLENS huskylens;
 HUSKYLENSResult face;
 bool face_detected = false;
+bool huskylens_connected = true;
 
-// Emotions
-//Emotion emotion = NEUTRAL;
+// Led matrices
+Adafruit_NeoPixel pixels;
+int LED_BRIGHTNESS = 8;
+Emotion eye_emotion = NEUTRAL;
+
+// Hues of different eye emotions
+int neutral_hue = 125;
+int happy_hue = 80;
+int angry_hue = 0;
+int sad_hue = 150;
+
+// Different eye byte arrays
+byte neutral[] = {
+  B0000,
+  B01110,
+  B011110,
+  B0111110,
+  B011110,
+  B01110,
+  B0000
+};
+
+byte blink1[] = {
+  B0000,
+  B00000,
+  B011110,
+  B0111110,
+  B011110,
+  B00000,
+  B0000
+};
+
+byte blink2[] = {
+  B0000,
+  B00000,
+  B000000,
+  B1111111,
+  B000000,
+  B00000,
+  B0000
+};
+
+byte surprised[] = {
+  B1111,
+  B11111,
+  B111111,
+  B1111111,
+  B111111,
+  B11111,
+  B1111
+};
+
+byte happy[] = {
+  B1111,
+  B11111,
+  B111111,
+  B1100011,
+  B000000,
+  B00000,
+  B0000
+};
+
+byte angry[] = {
+  B0000,
+  B10000,
+  B110000,
+  B1111000,
+  B111110,
+  B11111,
+  B1111
+};
+
+byte sad[] = {
+  B0000,
+  B00001,
+  B000011,
+  B0001111,
+  B011111,
+  B11111,
+  B1111
+};
+
 
 void setup() {
   Serial.begin(115200);
   Serial.setTimeout(1);
 
-  // Wire is for communication with I2C ports, which is what huskylens should be plugged into.
+  // Wire is for communication with I2C ports, which is what huskylens should be plugged into
   Wire.begin();
-  while (!huskylens.begin(Wire)) {
+  if (!huskylens.begin(Wire)) {
       Serial.println(F("HuskyLens failed to start! Please check the I2C connection."));
       delay(1000);
+      if (!huskylens.begin(Wire)) {
+        Serial.println("Failed to start HuskyLens twice, continuing without camera.");
+        huskylens_connected = false;
+      }
   }
 
+  // Set the pin of the servos
   servo_horizontal.attach(SERVO_PIN_1);
   servo_vertical.attach(SERVO_PIN_2);
+  // Set the servos to their default position on start
   servo_horizontal.write(servo_horizontal_default_pos);
   servo_vertical.write(servo_vertical_default_pos);
+
+  // Initialise the led matrices
+  pixels.updateLength(LED_COUNT);
+  pixels.setPin(LED_PIN);
+  pixels.updateType(NEO_GRB + NEO_KHZ800);
+  pixels.begin();
+  pixels.show();
 }
 
 void loop() {
   if (millis() - timer >= 20){
     timer = millis();
     move_servos();
-    husky_lens();
+    if (huskylens_connected) husky_lens();
+    run_emotions();
   }
   if (millis() - timer_comm >= 10){
     timer_comm = millis();
@@ -56,13 +152,44 @@ void loop() {
 // ----------------- Emotions -----------------
 // ============================================
 
-// Emotion string_to_emotion(String emotion_string){
-//     if(emotion_string == "SAD") return SAD;
-//     else if(emotion_string == "SURPRISED") return SUPRISED;
-//     else if(emotion_string == "HAPPY") return HAPPY;
-//     else if(emotion_string == "ANGRY") return ANGRY;
-//     return NEUTRAL;
-// }
+Emotion string_to_emotion(String emotion_string){
+    if(emotion_string == "SAD") return SAD;
+    else if(emotion_string == "SURPRISED") return SURPRISED;
+    else if(emotion_string == "HAPPY") return HAPPY;
+    else if(emotion_string == "ANGRY") return ANGRY;
+    return NEUTRAL;
+}
+
+void run_emotions(){
+  pixels.clear();  
+
+  switch (eye_emotion) {
+    case NEUTRAL:
+      if (millis() % 5000 < 150) display_eyes(blink1, neutral_hue);
+      else if (millis() % 5000 < 300) display_eyes(blink2, neutral_hue);
+      else if (millis() % 5000 < 450) display_eyes(blink1, neutral_hue);
+      else display_eyes(neutral, neutral_hue);
+      break;
+
+    case HAPPY:
+      display_eyes(happy, happy_hue);
+      break;
+
+    case SAD:
+      display_eyes(sad, sad_hue);  
+      break;
+
+    case ANGRY:
+      display_eyes(angry, angry_hue);
+      break;
+
+    case SURPRISED:
+      display_eyes(surprised, neutral_hue);
+      break;
+      
+  }
+  pixels.show();
+}
 
 // ============================================
 // ----------- Python communication -----------
@@ -103,7 +230,10 @@ void receive_communication() {
         servo_vertical_target = second_value;
         Serial.print("Setting servo 1 to: " + String(servo_horizontal_target) + "" + "Setting servo 2 to: " + String(servo_vertical_target) + "\n");
       }
-      if (type == "EYES") Serial.print("Setting eyes to: " + value + "\n");
+      if (type == "EYES") {
+        Serial.print("Setting emotion to: " + value + "\n");
+        eye_emotion = string_to_emotion(value);
+      }
       // if (type == "EMOTION") {
       //   Serial.print("Setting emotion to: " + value + "\n");
       //   emotion = string_to_emotion(value);
