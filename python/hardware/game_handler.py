@@ -17,7 +17,7 @@ Arduino serial protocol used here:
 
 import random
 import time
-from hardware.arduino_controller import ArduinoController, Emotion
+from python.hardware.arduino_controller import ArduinoController, Emotion
 
 COLORS = ["RED", "BLUE", "GREEN", "YELLOW"]
 

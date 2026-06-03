@@ -9,7 +9,7 @@ How to play:
 
 import threading
 from queue import Queue, Empty
-from hardware.game_handler import FullGame
+from python.hardware.game_handler import FullGame
 
 
 class MockArduino:
