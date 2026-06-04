@@ -1,11 +1,13 @@
 #include "config.h"
 #include "movement.h"
 #include "vision.h"
+#include "audio.h"
 #include "led_matrices.h"
 
 // Timing of loop
 long timer;
 long timer_comm;
+long timer_test;
 
 // Servos
 float smoothing_speed = 0.05;
@@ -21,8 +23,11 @@ HUSKYLENSResult face;
 bool face_detected = false;
 bool huskylens_connected = true;
 
+// Audio player
+SoftwareSerial mp3(AUDIO_PIN_1, AUDIO_PIN_2);
+
 // Led matrices
-Adafruit_NeoPixel pixels;
+Adafruit_NeoPixel pixels(LED_COUNT, LED_PIN);
 int LED_BRIGHTNESS = 8;
 Emotion eye_emotion = NEUTRAL;
 
@@ -106,7 +111,7 @@ byte sad[] = {
 
 void setup() {
   Serial.begin(115200);
-  Serial.setTimeout(1);
+  Serial.setTimeout(2000);
 
   // Wire is for communication with I2C ports, which is what huskylens should be plugged into
   Wire.begin();
@@ -116,6 +121,7 @@ void setup() {
       if (!huskylens.begin(Wire)) {
         Serial.println("Failed to start HuskyLens twice, continuing without camera.");
         huskylens_connected = false;
+        Wire.end();
       }
   }
 
@@ -127,11 +133,13 @@ void setup() {
   servo_vertical.write(servo_vertical_default_pos);
 
   // Initialise the led matrices
-  pixels.updateLength(LED_COUNT);
-  pixels.setPin(LED_PIN);
-  pixels.updateType(NEO_GRB + NEO_KHZ800);
   pixels.begin();
-  pixels.show();
+
+  // Start the connection with the audio module
+  mp3.begin(9600);
+  delay(100);                 // Required for booting up
+  SelectPlayerDevice(0x02);   // Select SD card.
+  SetVolume(0x1E);            // Set the volume to the max.
 }
 
 void loop() {
@@ -141,11 +149,8 @@ void loop() {
     if (huskylens_connected) husky_lens();
     run_emotions();
   }
-  if (millis() - timer_comm >= 10){
-    timer_comm = millis();
-    receive_communication();
-    send_communication();
-  }
+  if (Serial.available()) receive_communication();
+  send_communication();
 }
 
 // ============================================
@@ -196,61 +201,66 @@ void run_emotions(){
 // ============================================
 
 void receive_communication() {
-  char val = ' ';
-  String data = "";
-  if (Serial.available()) {
-    do {
-      val = Serial.read();
-      if (val != -1) data = data + val;
-    }
-    while ( val != -1);
-  }
+  String data = Serial.readStringUntil('.');
+  data.trim();
 
   // Data is a string of what we received, we will split it into the different values
   // Each command is sent as "command_type", command; The final command in the data ends in "." to indicate the end of the command chain.
   // Example of what the data could look like: "SERVO,(10,10);EYES,sad;."
-  if (data.length() > 1 && data.charAt(data.length() - 1) == '.') {
+  if ((data.length() > 1) && (data.indexOf(";") > 0) && (data.indexOf(",") > 0)) {
     // Send the received data back for debugging
-    Serial.print("Received: " + data);
+    // Serial.print(F("Received: ["));
+    // Serial.print(data);
+    // Serial.println(F("]"));
 
     String command_pair;
-    String type;
+    String command_type;
     String value;
-    for (int i = 0; data.length() > 1; i++){
+    for (int i = 0; data.length() > 2; i++){
       command_pair = data.substring(0, data.indexOf(';'));
       data = data.substring(data.indexOf(';') + 1, data.length());
-      
-      type = command_pair.substring(0,command_pair.indexOf(','));
-      value = command_pair.substring(command_pair.indexOf(',') + 1,command_pair.indexOf(';'));
 
-      if (type == "SERVO") {
+      command_type = command_pair.substring(0,command_pair.indexOf(','));
+      value = command_pair.substring(command_pair.indexOf(',') + 1);
+
+      if (command_type.equals("SERVO")) {
         int first_value = value.substring(value.indexOf('(') + 1, value.indexOf(',')).toInt();
         int second_value = value.substring(value.indexOf(',') + 1, value.indexOf(')')).toInt();
         servo_horizontal_target = first_value;
         servo_vertical_target = second_value;
-        Serial.print("Setting servo 1 to: " + String(servo_horizontal_target) + "" + "Setting servo 2 to: " + String(servo_vertical_target) + "\n");
-      }
-      if (type == "EYES") {
-        Serial.print("Setting emotion to: " + value + "\n");
+        // Serial.print(F("Setting servo 1 to: "));
+        // Serial.print(servo_horizontal_target);
+        // Serial.print(F(", Setting servo 2 to: "));
+        // Serial.println(servo_vertical_target);
+      }else if (command_type.equals("EYES")) {
+        // Serial.print(F("Setting eye emotion to: "));
+        // Serial.println(value);
         eye_emotion = string_to_emotion(value);
+      }else if (command_type.equals("AUDIO")) {
+        // Serial.print(F("Playing audio file: "));
+        // Serial.println(value);
+        play_audio(value.toInt());
       }
-      // if (type == "EMOTION") {
-      //   Serial.print("Setting emotion to: " + value + "\n");
-      //   emotion = string_to_emotion(value);
-      //   }
+  //     // if (type == "EMOTION") {
+  //     //   Serial.print("Setting emotion to: " + value + "\n");
+  //     //   emotion = string_to_emotion(value);
+  //     //   }
       }
     }
 }
 
 void send_communication(){
   if (face_detected){
-      String message_json = "{\"detected_face\": {";
       // Serial.println(String() + F("Block:xCenter=") + result.xCenter + F(",yCenter=") + result.yCenter + F(",width=") + result.width + F(",height=") + result.height + F(",ID=") + result.ID);
-      message_json += "\"xCenter\": " + String(face.xCenter) + ",";
-      message_json += "\"yCenter\": " + String(face.yCenter) + ",";
-      message_json += "\"width\": " + String(face.width) + ",";
-      message_json += "\"height\": " + String(face.height);
-      message_json += "}}";
-      Serial.println(message_json);
+      // As string concatenation is very bad for performance and made the memory run out, this is sadly the best way I've found to do this :(
+      Serial.print(F("{\"detected_face\": {\"xCenter\": "));
+      Serial.print(face.xCenter);
+      Serial.print(F(", \"yCenter\": "));
+      Serial.print(face.yCenter);
+      Serial.print(F(", \"width\": "));
+      Serial.print(face.width);
+      Serial.print(F(", \"height\": "));
+      Serial.print(face.height);
+      Serial.println(F("}}"));
   }
 }

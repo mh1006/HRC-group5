@@ -94,9 +94,10 @@ class ArduinoController:
     def send_raw(self, raw: str):
         """
         Send a pre-formatted command string.
-        Must end with '.' — e.g. "EMOTION,HAPPY;SERVO,90;."
+        Must end with '.' — e.g. "EMOTION,HAPPY;SERVO,(90,90);."
         If the trailing '.' is missing it is added automatically.
         """
+        print(raw)
         if not raw.endswith("."):
             raw += "."
         self.ser.write(raw.encode("utf-8"))

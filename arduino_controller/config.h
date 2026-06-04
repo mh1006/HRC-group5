@@ -4,6 +4,7 @@
 #include <Servo.h>
 #include <Wire.h>
 #include <Adafruit_NeoPixel.h>
+#include <MP3Player_KT403A.h>
 #include "HUSKYLENS.h"
 
 // Pin locations
@@ -12,6 +13,8 @@
 // The LED matrices should be plugged into D3 on the shield. From the arduino it should go into "in" on one matrix, then from that out to the in of the next.
 #define SERVO_PIN_1   7  // left right
 #define SERVO_PIN_2   6  // up down
+#define AUDIO_PIN_1 2 // Receive pin 
+#define AUDIO_PIN_2 3 // Transmit pin
 #define LED_PIN 4
 #define LED_COUNT 74 // 37 per matrix
 
