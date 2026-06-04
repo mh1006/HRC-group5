@@ -18,6 +18,7 @@ Supported command types (from the sketch's communication() function):
 import serial
 import threading
 import time
+import json
 from queue import Queue, Empty
 from enum import Enum
 
@@ -76,8 +77,12 @@ class ArduinoController:
                 if raw:
                     line = raw.decode("utf-8", errors="replace").strip()
                     if line:
-                        print(f"[Arduino] {line}")
-                        self._log_queue.put(line)
+                        try:
+                            response_json = json.loads(line)
+                            print(f"[Detected json] {response_json}")
+                        except ValueError:
+                            print(f"[Arduino] {line}")
+                            self._log_queue.put(line)
             except Exception:
                 pass
 

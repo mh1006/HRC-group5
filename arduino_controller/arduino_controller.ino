@@ -20,6 +20,10 @@ float servo_horizontal_speed = 0, servo_vertical_speed = 0;
 // Huskylens
 HUSKYLENS huskylens;
 HUSKYLENSResult face;
+struct FaceResult {
+  int xCenter, yCenter, width, height;
+}; 
+FaceResult last_face;// To track if the face info changed from the last message we sent
 bool face_detected = false;
 bool huskylens_connected = true;
 
@@ -249,9 +253,18 @@ void receive_communication() {
     }
 }
 
+bool same_face(HUSKYLENSResult new_face){
+  if (new_face.xCenter != last_face.xCenter) return false;
+  else if (new_face.yCenter != last_face.yCenter) return false;
+  else if (new_face.width != last_face.width) return false;
+  else if (new_face.height != last_face.height) return false;
+  else return true;
+}
+
 void send_communication(){
-  if (face_detected){
+  if (face_detected && !same_face(face)){
       // Serial.println(String() + F("Block:xCenter=") + result.xCenter + F(",yCenter=") + result.yCenter + F(",width=") + result.width + F(",height=") + result.height + F(",ID=") + result.ID);
+      last_face = {face.xCenter, face.yCenter, face.width, face.height};
       // As string concatenation is very bad for performance and made the memory run out, this is sadly the best way I've found to do this :(
       Serial.print(F("{\"detected_face\": {\"xCenter\": "));
       Serial.print(face.xCenter);
