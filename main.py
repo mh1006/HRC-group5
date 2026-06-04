@@ -1,16 +1,9 @@
 import os
-from google.cloud import dialogflow
-import numpy as np
-import serial
-from hardware.arduino import Arduino
 from hardware.arduino_controller import ArduinoController
 from interaction.state import State, execute_state
 
 # Check which COM you are conected to in the arduino IDE
-# TODO: uncomment and set correct port when arduino is ready
 arduino_controller = ArduinoController(port="COM4", baud=115200)
-# arduino_controller = None
-# arduino = Arduino('COM4', 115200) #TODO: remove once arduino_controller is used everywhere
 
 PROJECT_ID = 'project-631e036d-75af-4f9e-b4b'
 SESSION_ID = '3'
