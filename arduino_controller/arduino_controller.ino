@@ -8,6 +8,7 @@
 long timer;
 long timer_comm;
 long timer_test;
+int rainbow_timer;
 
 // Servos
 float smoothing_speed = 0.05;
@@ -138,6 +139,7 @@ void setup() {
 
   // Initialise the led matrices
   pixels.begin();
+  rainbow_timer = 0;
 
   // Start the connection with the audio module
   mp3.begin(9600);
@@ -166,6 +168,7 @@ Emotion string_to_emotion(String emotion_string){
     else if(emotion_string == "SURPRISED") return SURPRISED;
     else if(emotion_string == "HAPPY") return HAPPY;
     else if(emotion_string == "ANGRY") return ANGRY;
+    else if (emotion_string == "RAINBOW") return RAINBOW;
     return NEUTRAL;
 }
 
@@ -195,7 +198,10 @@ void run_emotions(){
     case SURPRISED:
       display_eyes(surprised, neutral_hue);
       break;
-      
+    case RAINBOW:
+      pixels.rainbow(rainbow_timer);
+      rainbow_timer += 256;
+      break;
   }
   pixels.show();
 }
