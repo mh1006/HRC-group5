@@ -8,7 +8,7 @@ class Intent(Enum):
     FALLBACK_INTENT = "FallbackIntent"
     
     def to_state(self):
-        from interaction.state import State
+        from python.interaction.state import State
         mapping = {
             Intent.ATTRACT_ATTENTION_INTENT: State.ATTRACTING,
             Intent.ENGAGEMENT_INTENT: State.ENGAGED,

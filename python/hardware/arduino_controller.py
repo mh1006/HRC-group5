@@ -7,12 +7,12 @@ Matches the protocol already implemented in the Arduino sketch:
     Arduino replies with:  "Setting <type> to: <value>"
 
 You can chain multiple commands in one transmission:
-    send("EMOTION,HAPPY;SERVO,90;")  →  "EMOTION,HAPPY;SERVO,90;."
+    send("EMOTION,HAPPY;SERVO,(90,30);")  →  "EMOTION,HAPPY;SERVO,(90,30);."
 
 Supported command types (from the sketch's communication() function):
     EMOTION  →  NEUTRAL | HAPPY | SAD | ANGRY | SURPRISED
     EYES     →  (reserved in sketch, not yet handled, but forwarded)
-    SERVO    →  integer angle (if you add SERVO handling to the sketch)
+    SERVO    →  (horizontal, vertical) tuple — e.g. SERVO,(90,30);
 """
 
 import serial
@@ -21,6 +21,7 @@ import time
 import json
 from queue import Queue, Empty
 from enum import Enum
+import json
 
 
 # ── Mirror the Arduino enums so Python stays in sync ──────────────────────────
@@ -127,13 +128,6 @@ class ArduinoController:
         """
         self.send((CommandType.EMOTION, emotion.value))
 
-    def set_eyes(self, pattern: str):
-        """
-        Send an EYES command (forwarded to Arduino; add handling there if needed).
-        pattern: any label your sketch will recognise, e.g. "happy", "sad"
-        """
-        self.send((CommandType.EYES, pattern))
-
     def set_game_color(self, color: str):
         """
         Show a solid color on the robot's eyes during the color game.
@@ -142,13 +136,14 @@ class ArduinoController:
         """
         self.send((CommandType.EYES_COLOR, color))
 
-    def set_servo(self, angle: int):
+    def set_servo(self, horizontal: int, vertical: int):
         """
-        Send a SERVO command.
-        angle: 0–180. Add `if (type == "SERVO") servo1.write(value.toInt());`
-        to the Arduino sketch's communication() to handle this.
+        Send a SERVO command to set both axes at once.
+        horizontal: 0–180 (left/right pan, SERVO_PIN_1)
+        vertical:   0–180 (up/down tilt, SERVO_PIN_2)
+        Arduino parses the tuple format: SERVO,(h,v);
         """
-        self.send((CommandType.SERVO, str(angle)))
+        self.send((CommandType.SERVO, f"({horizontal},{vertical})"))
 
     def chain(self, **kwargs):
         """
@@ -162,6 +157,13 @@ class ArduinoController:
         """
         pairs = [(k.upper(), str(v)) for k, v in kwargs.items()]
         self.send(*pairs)
+        
+    def parse_face(self, line: str) -> dict | None:
+        """Parse a face JSON line from the Arduino. Returns the face dict or None."""
+        try:
+            return json.loads(line).get("detected_face")
+        except (json.JSONDecodeError, AttributeError):
+            return None
 
     # ── Convenience wrappers for each state in your state machine ──────────────
 
