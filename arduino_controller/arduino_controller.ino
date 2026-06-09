@@ -278,12 +278,8 @@ void receive_communication() {
           servo_vertical_target   = servo_vertical_default_pos;
         }
       }
-  //     // if (type == "EMOTION") {
-  //     //   Serial.print("Setting emotion to: " + value + "\n");
-  //     //   emotion = string_to_emotion(value);
-  //     //   }
-      }
     }
+  }
 }
 
 bool same_face(HUSKYLENSResult new_face){

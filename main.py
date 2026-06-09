@@ -25,8 +25,3 @@ if __name__ == '__main__':
             state = sm.execute(state)
     except KeyboardInterrupt:
         print("\nShutting down.")
-        
-    # while True:
-    #     # Commands should be formatted as E.G.: "EMOTION,SAD;SERVO,(10,10);."
-    #     Input_text = input("Enter a command to send to the arduino: ")  # Taking input from user
-    #     arduino_controller.send_raw(Input_text)
