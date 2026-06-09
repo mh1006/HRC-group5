@@ -22,7 +22,7 @@
 // GLOBAL VARIABLES
 
 // --- Enums ---
-enum Emotion { NEUTRAL, SURPRISED, HAPPY, ANGRY, SAD };
+enum Emotion { NEUTRAL, SURPRISED, HAPPY, ANGRY, SAD, RAINBOW};
 
 // --- Servos ---
 extern Servo servo_horizontal, servo_vertical;
