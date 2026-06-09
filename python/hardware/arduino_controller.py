@@ -18,6 +18,7 @@ Supported command types (from the sketch's communication() function):
 import serial
 import threading
 import time
+import json
 from queue import Queue, Empty
 from enum import Enum
 import json
@@ -77,8 +78,12 @@ class ArduinoController:
                 if raw:
                     line = raw.decode("utf-8", errors="replace").strip()
                     if line:
-                        print(f"[Arduino] {line}")
-                        self._log_queue.put(line)
+                        try:
+                            response_json = json.loads(line)
+                            print(f"[Detected json] {response_json}")
+                        except ValueError:
+                            print(f"[Arduino] {line}")
+                            self._log_queue.put(line)
             except Exception:
                 pass
 
@@ -95,9 +100,10 @@ class ArduinoController:
     def send_raw(self, raw: str):
         """
         Send a pre-formatted command string.
-        Must end with '.' — e.g. "EMOTION,HAPPY;SERVO,90;."
+        Must end with '.' — e.g. "EMOTION,HAPPY;SERVO,(90,90);."
         If the trailing '.' is missing it is added automatically.
         """
+        print(raw)
         if not raw.endswith("."):
             raw += "."
         self.ser.write(raw.encode("utf-8"))
