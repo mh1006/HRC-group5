@@ -22,10 +22,11 @@ HUSKYLENS huskylens;
 HUSKYLENSResult face;
 struct FaceResult {
   int xCenter, yCenter, width, height;
-}; 
+};
 FaceResult last_face;// To track if the face info changed from the last message we sent
 bool face_detected = false;
 bool huskylens_connected = true;
+bool tracking_enabled = false;
 
 // Audio player
 SoftwareSerial mp3(AUDIO_PIN_1, AUDIO_PIN_2);
@@ -151,6 +152,7 @@ void loop() {
     timer = millis();
     move_servos();
     if (huskylens_connected) husky_lens();
+    if (tracking_enabled) track_face();
     run_emotions();
   }
   if (Serial.available()) receive_communication();
@@ -201,6 +203,31 @@ void run_emotions(){
 }
 
 // ============================================
+// --------------- Face tracking --------------
+// ============================================
+
+// Proportional gain: how aggressively the head chases the face.
+// 0.1 means a 160px error (half the screen) moves the servo 16°. 
+// TODO: Tune as needed.
+#define TRACKING_GAIN 0.1f
+
+void track_face() {
+  if (face_detected) {
+    // HuskyLens resolution: 320×240, so screen centre is (160, 120).
+    // Horizontal: face left of centre → servo turns left (target decreases).
+    // Vertical:   face above centre  → servo tilts up  (target increases).
+    servo_horizontal_target = constrain(
+      servo_horizontal_default_pos - (face.xCenter - 160) * TRACKING_GAIN, 0, 180);
+    servo_vertical_target = constrain(
+      servo_vertical_default_pos + (face.yCenter - 120) * TRACKING_GAIN, 0, 180);
+  } else {
+    // No face visible — drift back to default so the robot looks forward.
+    servo_horizontal_target = servo_horizontal_default_pos;
+    servo_vertical_target   = servo_vertical_default_pos;
+  }
+}
+
+// ============================================
 // ----------- Python communication -----------
 // ============================================
 
@@ -244,6 +271,12 @@ void receive_communication() {
         // Serial.print(F("Playing audio file: "));
         // Serial.println(value);
         play_audio(value.toInt());
+      }else if (command_type.equals("TRACKING")) {
+        tracking_enabled = value.equals("ON");
+        if (!tracking_enabled) {
+          servo_horizontal_target = servo_horizontal_default_pos;
+          servo_vertical_target   = servo_vertical_default_pos;
+        }
       }
   //     // if (type == "EMOTION") {
   //     //   Serial.print("Setting emotion to: " + value + "\n");

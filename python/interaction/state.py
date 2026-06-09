@@ -83,7 +83,7 @@ class StateMachine:
                 self.retries = 0
                 self.engagement_count += 1  # track how many times child has responded
                 # TODO: uncomment when arduino is ready
-                # self.arduino.on_engaged()        # HAPPY eyes + face tracking + dance
+                # self.arduino.on_engaged()        # HAPPY eyes + face tracking 
                 # TODO: play sound
                 if self.engagement_count >= 2:
                     self.engagement_count = 0
