@@ -245,12 +245,8 @@ void receive_communication() {
         // Serial.println(value);
         play_audio(value.toInt());
       }
-  //     // if (type == "EMOTION") {
-  //     //   Serial.print("Setting emotion to: " + value + "\n");
-  //     //   emotion = string_to_emotion(value);
-  //     //   }
-      }
     }
+  }
 }
 
 bool same_face(HUSKYLENSResult new_face){
