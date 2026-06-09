@@ -5,9 +5,9 @@ Two game classes (ColorGame, SequenceGame) are chained by FullGame.
 Use FullGame.run() as the single entry point from state.py.
 
 Exit conditions shared by both games:
-  - Child presses the wrong button → immediate fail.
-  - No button press within the timeout → treated as "child left / disengaged" → fail.
-  - A failed round ends the whole game (robot shows SAD, FullGame.run() returns False).
+  - Child presses the wrong button → SAD eyes, then the round retries (up to max_retries times).
+  - No button press within the timeout → treated as wrong → same retry logic applies.
+  - Exhausting all retries on a round ends the whole game (FullGame.run() returns False).
   - Completing all rounds → robot shows HAPPY, game returns True.
 
 Arduino serial protocol used here:
@@ -34,22 +34,23 @@ class ColorGame:
     1. Eyes light up with a random color (RED / BLUE / GREEN / YELLOW).
     2. Robot waits for a button press.
        • Correct button  → HAPPY eyes for 0.5 s, then next round.
-       • Wrong button    → game ends immediately (see _on_wrong).
-       • No press within the time limit → game ends (timeout = wrong).
+       • Wrong button or timeout → SAD eyes for 1 s, then the same round retries.
+         After max_retries failed attempts the game ends.
     3. Time limit starts at 5 s and shrinks by 0.3 s each round (floor: 2 s),
        so the game gets harder as it progresses.
 
     End-of-game behavior
     ────────────────────
-    • All 5 rounds correct → _on_win()  : HAPPY eyes.
-    • Any round fails      → _on_wrong(): SAD eyes for 1 s.
+    • All 5 rounds correct         → _on_win(): HAPPY eyes.
+    • Round fails all retries      → _on_wrong() then game ends (returns False).
     """
 
-    def __init__(self, arduino: ArduinoController):
+    def __init__(self, arduino: ArduinoController, max_retries: int = 2):
         self.arduino = arduino
         self.score = 0
         self.round = 0
         self.max_rounds = 5
+        self.max_retries = max_retries
         self.time_limit = 5.0       # seconds allowed in round 1
 
     def run(self) -> bool:
@@ -57,10 +58,13 @@ class ColorGame:
         self.score = 0
 
         for self.round in range(1, self.max_rounds + 1):
-            correct = self._run_round()
-            if not correct:
+            for attempt in range(self.max_retries + 1):
+                correct = self._run_round()
+                if correct:
+                    break
                 self._on_wrong()
-                return False
+                if attempt >= self.max_retries:
+                    return False
 
         self._on_win()
         return True
@@ -131,15 +135,17 @@ class SequenceGame:
 
     INPUT PHASE — child repeats the sequence:
       For each color the child must press (in order):
-        • No press within 8 s    → timeout → treated as "child left" → game ends.
-        • Wrong button pressed   → game ends immediately.
+        • No press within 8 s    → timeout → treated as wrong (see below).
+        • Wrong button pressed   → SAD eyes for 1 s, then the whole round replays
+                                   (same sequence shown again). After max_retries
+                                   failed attempts the game ends.
         • Correct button pressed → eyes briefly flash that color for 0.25 s,
                                    then wait for the next button in the sequence.
 
     End-of-round / end-of-game behavior
     ─────────────────────────────────────
     • Round complete (all buttons correct) → HAPPY eyes for 0.5 s, next round begins.
-    • Any failure                          → SAD eyes for 1 s, game ends.
+    • Round fails all retries              → SAD eyes for 1 s, game ends.
     • All rounds complete                  → _on_win(): HAPPY eyes.
     """
 
@@ -147,11 +153,12 @@ class SequenceGame:
     COLOR_GAP_DURATION  = 0.4   # seconds of SURPRISED gap between demo colors
     INPUT_TIMEOUT       = 8.0   # seconds child has to press each button
 
-    def __init__(self, arduino: ArduinoController, max_rounds: int = 3, start_length: int = 3):
+    def __init__(self, arduino: ArduinoController, max_rounds: int = 3, start_length: int = 3, max_retries: int = 2):
         self.arduino = arduino
         self.score = 0
         self.round = 0
         self.max_rounds = max_rounds
+        self.max_retries = max_retries
         self.start_length = start_length
 
     def run(self) -> bool:
@@ -162,10 +169,13 @@ class SequenceGame:
             length   = self.start_length + self.round - 1
             sequence = [random.choice(COLORS) for _ in range(length)]
 
-            correct = self._run_round(sequence)
-            if not correct:
+            for attempt in range(self.max_retries + 1):
+                correct = self._run_round(sequence)
+                if correct:
+                    break
                 self._on_wrong()
-                return False
+                if attempt >= self.max_retries:
+                    return False
 
             self.score += 1
             self._on_correct()
@@ -223,6 +233,7 @@ class SequenceGame:
 
     def _on_wrong(self):
         self.arduino.set_emotion(Emotion.SAD)
+        # TODO: sound?
         time.sleep(1.0)
 
     def _on_win(self):
@@ -243,7 +254,8 @@ class FullGame:
     ────────────────────────────
     PHASE 1 — Color Match (5 rounds):
       See ColorGame docstring for per-round detail.
-      • Any failure → SAD eyes 1 s → session ends, returns False.
+      • Wrong/timeout → SAD eyes, retry same round (up to max_retries times).
+      • All retries exhausted → session ends, returns False.
       • All 5 rounds correct → transition animation begins.
 
     TRANSITION (phase 1 → phase 2):
@@ -252,7 +264,8 @@ class FullGame:
 
     PHASE 2 — Sequence Repeat (3 rounds, starting with 3-color sequences):
       See SequenceGame docstring for per-round detail.
-      • Any failure → SAD eyes 1 s → session ends, returns False.
+      • Wrong/timeout → SAD eyes, same sequence replayed (up to max_retries times).
+      • All retries exhausted → session ends, returns False.
       • All 3 rounds correct → HAPPY eyes → session ends, returns True.
 
     Usage from state.py:

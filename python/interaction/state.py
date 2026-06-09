@@ -96,14 +96,7 @@ class StateMachine:
                 # TODO: uncomment when arduino is ready
                 # self.arduino.on_playing()
                 # won = FullGame(self.arduino).run()
-                # TODO: give multiple tries
-                # if not won and self.game_retries <= 4:
-                #     self.game_retries += 1
-                #     return State.PLAYING
-                # else:
-                #     self.game_retries = 0
-                #     return State.CALMING
-                self.game_retries = 0  # reset so the next session gets a fresh counter
+                # return State.IDLE if won else State.CALMING
                 return State.IDLE
 
             case State.CALMING:
