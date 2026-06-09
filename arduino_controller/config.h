@@ -34,6 +34,7 @@ extern float smoothing_speed;
 extern HUSKYLENS huskylens;
 extern HUSKYLENSResult face;
 extern bool face_detected;
+extern bool tracking_enabled;
 
 // --- Led matrices ---
 extern Adafruit_NeoPixel pixels;

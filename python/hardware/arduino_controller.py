@@ -78,12 +78,12 @@ class ArduinoController:
                 if raw:
                     line = raw.decode("utf-8", errors="replace").strip()
                     if line:
+                        self._log_queue.put(line)
                         try:
                             response_json = json.loads(line)
                             print(f"[Detected json] {response_json}")
                         except ValueError:
                             print(f"[Arduino] {line}")
-                            self._log_queue.put(line)
             except Exception:
                 pass
 
@@ -136,6 +136,10 @@ class ArduinoController:
         """
         self.send((CommandType.EYES_COLOR, color))
 
+    def set_tracking(self, enabled: bool):
+        """Enable or disable face-tracking servos on the Arduino."""
+        self.send(("TRACKING", "ON" if enabled else "OFF"))
+
     def set_servo(self, horizontal: int, vertical: int):
         """
         Send a SERVO command to set both axes at once.
@@ -170,26 +174,32 @@ class ArduinoController:
     def on_attracting(self):
         """Robot notices someone — show SURPRISED, look alert."""
         self.set_emotion(Emotion.SURPRISED)
+        self.set_tracking(True)
 
     def on_engaged(self):
         """Child responded — switch to HAPPY."""
         self.set_emotion(Emotion.HAPPY)
+        self.set_tracking(True)
 
     def on_playing(self):
         """Game started — stay HAPPY (tracking + dancing handled on Arduino)."""
         self.set_emotion(Emotion.HAPPY)
+        self.set_tracking(False)
 
     def on_calming(self):
         """Stress detected — switch to NEUTRAL/SAD to mirror calm."""
         self.set_emotion(Emotion.SAD)
+        self.set_tracking(True)
 
     def on_idle(self):
         """Return to NEUTRAL — Arduino will auto-blink and wait."""
         self.set_emotion(Emotion.NEUTRAL)
+        self.set_tracking(False)
 
     def on_error(self):
         """Something went wrong — ANGRY face as a visual cue."""
         self.set_emotion(Emotion.ANGRY)
+        self.set_tracking(False)
 
     # ── Utility ────────────────────────────────────────────────────────────────
 
