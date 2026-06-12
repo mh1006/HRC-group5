@@ -262,64 +262,58 @@ void track_face() {
 // ============================================
 
 void receive_communication() {
+  static char buf[64];
+  int len = Serial.readBytesUntil('.', buf, sizeof(buf) - 1);
+  if (len == 0) return;
+  buf[len] = '\0';
 
-  String data = Serial.readStringUntil('.');
-  data.trim();
+  Serial.print(F("Received: ["));
+  Serial.print(buf);
+  Serial.println(F("]"));
 
-  // Data is a string of what we received, we will split it into the different values
-  // Each command is sent as "command_type", command; The final command in the data ends in "." to indicate the end of the command chain.
-  // Example of what the data could look like: "SERVO,(10,10);EYES,sad;."
-  if ((data.length() > 1) && (data.indexOf(";") > 0) && (data.indexOf(",") > 0)) {
-    // Send the received data back for debugging
-    // Serial.print(F("Received: ["));
-    // Serial.print(data);
-    // Serial.println(F("]"));
+  char *data = buf;
+  char *semicolon;
 
-    String command_pair;
-    String command_type;
-    String value;
-    for (int i = 0; data.length() > 2; i++){
-      command_pair = data.substring(0, data.indexOf(';'));
-      data = data.substring(data.indexOf(';') + 1, data.length());
+  while ((semicolon = strchr(data, ';')) != NULL) {
+    *semicolon = '\0';
 
-      command_type = command_pair.substring(0,command_pair.indexOf(','));
-      value = command_pair.substring(command_pair.indexOf(',') + 1);
+    char *comma = strchr(data, ',');
+    if (!comma) { data = semicolon + 1; continue; }
+    *comma = '\0';
 
-      if (command_type.equals("SERVO")) {
-        int first_value = value.substring(value.indexOf('(') + 1, value.indexOf(',')).toInt();
-        int second_value = value.substring(value.indexOf(',') + 1, value.indexOf(')')).toInt();
-        servo_horizontal_target = first_value;
-        servo_vertical_target = second_value;
-        // Serial.print(F("Setting servo 1 to: "));
-        // Serial.print(servo_horizontal_target);
-        // Serial.print(F(", Setting servo 2 to: "));
-        // Serial.println(servo_vertical_target);
-      }else if (command_type.equals("EYES")) {
-        // Serial.print(F("Setting eye emotion to: "));
-        // Serial.println(value);
-        eye_emotion = string_to_emotion(value);
-      }else if (command_type.equals("AUDIO")) {
-        // Serial.print(F("Playing audio file: "));
-        // Serial.println(value);
-        play_audio(value.toInt());
-      }else if (command_type.equals("TRACKING")) {
-        tracking_enabled = value.equals("ON");
-        if (!tracking_enabled) {
-          servo_horizontal_target = servo_horizontal_default_pos;
-          servo_vertical_target   = servo_vertical_default_pos;
-        }
-      }else if (command_type.equals("GAME_SET")) {
-        // Expected format from Python: "GAME_SET,RGB;." 
-        // 'value' will be "RGB"
-        if (value.length() >= 3) {
-          char lcd_color = value.charAt(0);
-          char m1_color = value.charAt(1);
-          char m2_color = value.charAt(2);
-          Serial.println(value);
-          setGameColors(lcd_color, m1_color, m2_color);
-        }
+    char *cmd   = data;
+    char *value = comma + 1;
+
+    if (strcmp(cmd, "SERVO") == 0) {
+      char *c = strchr(value, ',');
+      servo_horizontal_target = atoi(value + 1);
+      servo_vertical_target   = c ? atoi(c + 1) : 0;
+      // Serial.print(F("Setting servo 1 to: "));
+      // Serial.print(servo_horizontal_target);
+      // Serial.print(F(", Setting servo 2 to: "));
+      // Serial.println(servo_vertical_target);
+    } else if (strcmp(cmd, "EYES") == 0) {
+      // Serial.print(F("Setting eye emotion to: "));
+      // Serial.println(value);
+      eye_emotion = string_to_emotion(String(value));
+    } else if (strcmp(cmd, "AUDIO") == 0) {
+      // Serial.print(F("Playing audio file: "));
+      // Serial.println(value);
+      play_audio(atoi(value));
+    } else if (strcmp(cmd, "TRACKING") == 0) {
+      tracking_enabled = (strcmp(value, "ON") == 0);
+      if (!tracking_enabled) {
+        servo_horizontal_target = servo_horizontal_default_pos;
+        servo_vertical_target   = servo_vertical_default_pos;
       }
+    } else if (strcmp(cmd, "GAME_SET") == 0) {
+      // Serial.print(F("Setting game colors to: "));
+      // Serial.println(value);
+      if (strlen(value) >= 3)
+        setGameColors(value[0], value[1], value[2]);
     }
+
+    data = semicolon + 1;
   }
 }
 
