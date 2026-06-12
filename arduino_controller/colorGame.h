@@ -6,6 +6,10 @@
 // Track if the game is currently active to prevent multiple inputs
 bool gameActive = false;
 
+// Debounce timestamps per button (non-blocking)
+unsigned long lastDebounceTime[3] = {0, 0, 0};
+#define DEBOUNCE_MS 50
+
 // ==========================================
 // Utility: Convert char code to string (uses F() to save SRAM)
 // ==========================================
@@ -91,21 +95,22 @@ void setGameColors(char lcd_c, char m1_c, char m2_c) {
 void checkButtons() {
   for (int i = 0; i < 3; i++) {
     bool reading = digitalRead(btnPins[i]);
-    
-    if (reading == HIGH && lastBtnState[i] == LOW) {
-      delay(50); // Debounce
-      if (digitalRead(btnPins[i]) == HIGH) { 
-        
-        // Only trigger if the game is currently active
+
+    if (reading != lastBtnState[i]) {
+      lastDebounceTime[i] = millis();
+    }
+
+    if ((millis() - lastDebounceTime[i]) >= DEBOUNCE_MS) {
+      if (reading == HIGH && lastBtnState[i] == LOW) {
         if (gameActive) {
-          gameActive = false; // Lock immediately after one press
-          Serial.print(F("BTN,")); 
-          Serial.println(i);  // Send "BTN,0", "BTN,1", or "BTN,2" to Python
+          gameActive = false;
+          Serial.print(F("BTN,"));
+          Serial.println(i);
         }
-        
       }
     }
-    lastBtnState[i] = reading; 
+
+    lastBtnState[i] = reading;
   }
 }
 

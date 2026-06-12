@@ -128,7 +128,7 @@ byte sad[] = {
 
 void setup() {
   Serial.begin(115200);
-  Serial.setTimeout(2000);
+  Serial.setTimeout(50);
 
   // Wire is for communication with I2C ports, which is what huskylens should be plugged into
   Wire.begin();
@@ -138,7 +138,6 @@ void setup() {
       if (!huskylens.begin(Wire)) {
         Serial.println("Failed to start HuskyLens twice, continuing without camera.");
         huskylens_connected = false;
-        Wire.end();
       }
   }
 
