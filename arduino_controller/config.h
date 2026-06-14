@@ -21,10 +21,10 @@
 #define LED_COUNT 74 // 37 per matrix
 
 // Color game
-#define MATRIX_PIN_1 8  // Matrix 1 connected to D7
+#define MATRIX_PIN_1 8  // Matrix 1 connected to D6
 #define MATRIX_PIN_2 9  // Matrix 2 connected to D8
 #define NUMPIXELS    37 // Number of colorGame LEDs matrix
-const int btnPins[3] = {A0, A1, A2}; // Button 0 (LCD), Button 1 (D8), Button 2 (D9)
+const int btnPins[3] = {A0, A1, A2}; // Button 0 (LCD), Button 1 (D6), Button 2 (D4)
 
 // GLOBAL VARIABLES
 
@@ -55,10 +55,11 @@ extern Adafruit_NeoPixel matrix2;
 extern char btnColors[3];
 extern char allColors[6];
 extern bool lastBtnState[3];
+extern bool stableBtnState[3];
 extern char targetColor;
 
 extern int neutral_hue, happy_hue, angry_hue, sad_hue;
 // Eye patterns
-extern byte neutral[], blink1[], blink2[], surprised[], happy[], angry[], sad[];
+extern const byte neutral[], blink1[], blink2[], surprised[], happy[], angry[], sad[];
 
 #endif

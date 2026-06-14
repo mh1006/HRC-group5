@@ -4,6 +4,7 @@
 #include "audio.h"
 #include "led_matrices.h"
 #include "colorGame.h"
+#include <avr/pgmspace.h>
 
 // Timing of loop
 long timer;
@@ -35,7 +36,7 @@ SoftwareSerial mp3(AUDIO_PIN_1, AUDIO_PIN_2);
 
 // Led matrices
 Adafruit_NeoPixel pixels(LED_COUNT, LED_PIN);
-int LED_BRIGHTNESS = 8;
+int LED_BRIGHTNESS = 1;
 Emotion eye_emotion = NEUTRAL;
 
 // Color Game
@@ -46,6 +47,7 @@ Adafruit_NeoPixel matrix2(NUMPIXELS, MATRIX_PIN_2);
 char btnColors[3] = {'O', 'O', 'O'}; 
 char allColors[6] = {'R', 'B', 'G', 'Y', 'C', 'P'};
 bool lastBtnState[3] = {LOW, LOW, LOW}; 
+bool stableBtnState[3] = {LOW, LOW, LOW};
 char targetColor = 'O';
 
 // Hues of different eye emotions
@@ -55,75 +57,13 @@ int angry_hue = 0;
 int sad_hue = 150;
 
 // Different eye byte arrays
-byte neutral[] = {
-  B0000,
-  B01110,
-  B011110,
-  B0111110,
-  B011110,
-  B01110,
-  B0000
-};
-
-byte blink1[] = {
-  B0000,
-  B00000,
-  B011110,
-  B0111110,
-  B011110,
-  B00000,
-  B0000
-};
-
-byte blink2[] = {
-  B0000,
-  B00000,
-  B000000,
-  B1111111,
-  B000000,
-  B00000,
-  B0000
-};
-
-byte surprised[] = {
-  B1111,
-  B11111,
-  B111111,
-  B1111111,
-  B111111,
-  B11111,
-  B1111
-};
-
-byte happy[] = {
-  B1111,
-  B11111,
-  B111111,
-  B1100011,
-  B000000,
-  B00000,
-  B0000
-};
-
-byte angry[] = {
-  B0000,
-  B10000,
-  B110000,
-  B1111000,
-  B111110,
-  B11111,
-  B1111
-};
-
-byte sad[] = {
-  B0000,
-  B00001,
-  B000011,
-  B0001111,
-  B011111,
-  B11111,
-  B1111
-};
+const byte neutral[] PROGMEM = { B0000, B01110, B011110, B0111110, B011110, B01110, B0000 };
+const byte blink1[]  PROGMEM = { B0000, B00000, B011110, B0111110, B011110, B00000, B0000 };
+const byte blink2[]  PROGMEM = { B0000, B00000, B000000, B1111111, B000000, B00000, B0000 };
+const byte surprised[] PROGMEM = { B1111, B11111, B111111, B1111111, B111111, B11111, B1111 };
+const byte happy[]   PROGMEM = { B1111, B11111, B111111, B1100011, B000000, B00000, B0000 };
+const byte angry[]   PROGMEM = { B0000, B10000, B110000, B1111000, B111110, B11111, B1111 };
+const byte sad[]     PROGMEM = { B0000, B00001, B0000011, B0001111, B011111, B11111, B1111 };
 
 
 void setup() {
@@ -136,7 +76,7 @@ void setup() {
       Serial.println(F("HuskyLens failed to start! Please check the I2C connection."));
       delay(1000);
       if (!huskylens.begin(Wire)) {
-        Serial.println("Failed to start HuskyLens twice, continuing without camera.");
+        Serial.println(F("Failed to start HuskyLens twice, continuing without camera."));
         huskylens_connected = false;
       }
   }
@@ -158,17 +98,19 @@ void setup() {
   SelectPlayerDevice(0x02);   // Select SD card.
   SetVolume(0x1E);            // Set the volume to the max.
 
-   // Color Game (Command exp: EYES_COLOR,RED;.)
+   // Color Game
   lcd.begin(16, 2);
   for (int i = 0; i < 3; i++) {
-    pinMode(btnPins[i], INPUT);
+    pinMode(btnPins[i], INPUT_PULLUP);
   }
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("System Ready!");
-  setLcdColor('W'); 
-  matrix1.begin(); matrix1.setBrightness(LED_BRIGHTNESS); matrix1.show();
-  matrix2.begin(); matrix2.setBrightness(LED_BRIGHTNESS); matrix2.show();
+  setLcdColor('W');
+  matrix1.begin(); matrix1.setBrightness(LED_BRIGHTNESS);
+  setMatrixColor(1, 'W'); matrix1.show();
+  matrix2.begin(); matrix2.setBrightness(LED_BRIGHTNESS);
+  setMatrixColor(2, 'W'); matrix2.show();
 }
 
 void loop() {
@@ -189,13 +131,13 @@ void loop() {
 // ----------------- Emotions -----------------
 // ============================================
 
-Emotion string_to_emotion(String emotion_string){
-    if(emotion_string == "SAD") return SAD;
-    else if(emotion_string == "SURPRISED") return SURPRISED;
-    else if(emotion_string == "HAPPY") return HAPPY;
-    else if(emotion_string == "ANGRY") return ANGRY;
-    else if (emotion_string == "RAINBOW") return RAINBOW;
-    return NEUTRAL;
+Emotion string_to_emotion(char* value){
+  if (strcmp(value, "SAD") == 0) return SAD;
+  if (strcmp(value, "SURPRISED") == 0) return SURPRISED;
+  if (strcmp(value, "HAPPY") == 0) return HAPPY;
+  if (strcmp(value, "ANGRY") == 0) return ANGRY;
+  if (strcmp(value, "RAINBOW") == 0) return RAINBOW;
+  return NEUTRAL;
 }
 
 void run_emotions(){
@@ -295,7 +237,8 @@ void receive_communication() {
     } else if (strcmp(cmd, "EYES") == 0) {
       // Serial.print(F("Setting eye emotion to: "));
       // Serial.println(value);
-      eye_emotion = string_to_emotion(String(value));
+      eye_emotion = string_to_emotion(value);
+      run_emotions();
     } else if (strcmp(cmd, "AUDIO") == 0) {
       // Serial.print(F("Playing audio file: "));
       // Serial.println(value);
@@ -307,10 +250,11 @@ void receive_communication() {
         servo_vertical_target   = servo_vertical_default_pos;
       }
     } else if (strcmp(cmd, "GAME_SET") == 0) {
+      // ex: GAME_SET,RGBG;.
       // Serial.print(F("Setting game colors to: "));
       // Serial.println(value);
-      if (strlen(value) >= 3)
-        setGameColors(value[0], value[1], value[2]);
+      if (strlen(value) >= 4)
+        setGameColors(value[0], value[1], value[2], value[3]);
     }
 
     data = semicolon + 1;
