@@ -40,6 +40,7 @@ class StateMachine:
         match state:
             case State.IDLE:
                 print("Entered IDLE state!")
+                self.engagement_count = 0
                 # TODO: uncomment when arduino is ready
                 # self.arduino.on_idle()
                 if self.arduino:
