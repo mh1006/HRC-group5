@@ -43,13 +43,13 @@ class StateMachine:
                 self.engagement_count = 0
                 # TODO: uncomment when arduino is ready
                 # self.arduino.on_idle()
-                if self.arduino:
-                    for line in self.arduino.drain_log():
-                        face = self.arduino.parse_face(line)
-                        if face and face["width"] >= FACE_PROXIMITY_THRESHOLD:
-                            return State.ATTRACTING
-                    time.sleep(0.1)
-                    return State.IDLE
+                # if self.arduino:
+                #     for line in self.arduino.drain_log():
+                #         face = self.arduino.parse_face(line)
+                #         if face and face["width"] >= FACE_PROXIMITY_THRESHOLD:
+                #             return State.ATTRACTING
+                #     time.sleep(0.1)
+                #     return State.IDLE
                 # Simulation fallback when no Arduino connected
                 time.sleep(3)
                 return State.ATTRACTING
