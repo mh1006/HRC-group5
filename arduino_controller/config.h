@@ -20,7 +20,7 @@
 #define EYE_PIN 4
 #define BUTTON_MATRICES_PIN 9
 #define LED_COUNT 74 // 37 per matrix
-const int btnPins[3] = {A0, A1, A2};
+const int BUTTON_PINS[3] = {A0, A1, A2};
 
 // GLOBAL VARIABLES
 

@@ -96,6 +96,11 @@ void setup() {
   lcd.begin(16,2);
   lcd.clear();
 
+  // Start all buttons
+  for (int i =0; i < len(BUTTON_PINS); i++){
+    pinMode(BUTTON_PINS[i], INPUT);
+  }
+
   // Start the connection with the audio module
   mp3.begin(9600);
   delay(100);                 // Required for booting up
@@ -186,27 +191,35 @@ void receive_communication() {
   static char buf[64];
   int len = Serial.readBytesUntil('.', buf, sizeof(buf) - 1);
   if (len == 0) return;
-  buf[len] = '\0';
+  buf[len] = '\0'; // String ending char
 
   // Serial.print(F("Received: ["));
   // Serial.print(buf);
   // Serial.println(F("]"));
 
+  // Pointers to the data and to the command seperator ;
   char *data = buf;
   char *semicolon;
 
+  // Each command ends in ; so this loops while there are still commands in the data
   while ((semicolon = strchr(data, ';')) != NULL) {
+    // This splits the data into 2 strings in place, as '\0' indicates the end of a string
     *semicolon = '\0';
 
+    // All commands are split by commas
     char *comma = strchr(data, ',');
+    // If there is no comma, this command is invalid and we continue
     if (!comma) { data = semicolon + 1; continue; }
     *comma = '\0';
 
+    // Again using pointers to extract different parts of the data using '\0' to separate strings
     char *cmd   = data;
     char *value = comma + 1;
 
+    // String comparing function which returns 0 if strings are the same.
     if (strcmp(cmd, "SERVO") == 0) {
       char *c = strchr(value, ',');
+      // Atoi interprets string as int, it skips one for the parenthesis, as the servo commands are structured (180,180)
       servo_horizontal_target = atoi(value + 1);
       servo_vertical_target   = c ? atoi(c + 1) : 0;
       // Serial.print(F("Setting servo 1 to: "));
