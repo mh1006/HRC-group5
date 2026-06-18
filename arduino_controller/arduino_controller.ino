@@ -36,6 +36,9 @@ bool tracking_enabled = false;
 // Audio player
 SoftwareSerial mp3(AUDIO_PIN_1, AUDIO_PIN_2);
 
+// Buttons (LOW = false, HIGH = true)
+bool buttonStates[3] = {LOW, LOW, LOW}; 
+
 // All led matrices need to be in 1 object and change pins, otherwise it uses too much memory.
 Adafruit_NeoPixel led_matrices(LED_COUNT, EYE_PIN);
 
@@ -92,12 +95,18 @@ void setup() {
   led_matrices.begin();
   rainbow_timer = 0;
 
+  led_matrices.setPin(BUTTON_MATRICES_PIN);
+  led_matrices.clear();
+  display_button_colors('O', 'O', 'O');
+  led_matrices.show();
+  led_matrices.setPin(EYE_PIN);
+
   // Initialise lcd with #rows and #cols.
   lcd.begin(16,2);
   lcd.clear();
 
   // Start all buttons
-  for (int i =0; i < len(BUTTON_PINS); i++){
+  for (int i =0; i < 3; i++){
     pinMode(BUTTON_PINS[i], INPUT);
   }
 
@@ -116,6 +125,7 @@ void loop() {
     if (tracking_enabled) track_face();
     run_emotions();
   }
+  read_buttons();
   if (Serial.available()) receive_communication();
   send_communication();
 }
@@ -246,12 +256,7 @@ void receive_communication() {
       Serial.print(F("Setting game colors to: "));
       Serial.println(value);
       if (strlen(value) >= 3){
-        led_matrices.setPin(BUTTON_MATRICES_PIN);
-        led_matrices.clear();
-        // display_matrices(button_matrices, surprised, value[0]);
         display_button_colors(value[0], value[1], value[2]);
-        led_matrices.show();
-        led_matrices.setPin(EYE_PIN);
       }
     } else if(strcmp(cmd, "MEMORY") == 0) {
         Serial.print(F("Free memory: "));

@@ -39,6 +39,9 @@ extern HUSKYLENSResult face;
 extern bool face_detected;
 extern bool tracking_enabled;
 
+// --- Buttons ---
+extern bool buttonStates[3];
+
 // --- LCD for the LCD button ---
 extern rgb_lcd lcd;
 
