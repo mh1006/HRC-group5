@@ -10,6 +10,7 @@
 
 // Timing of loop
 long timer;
+long tick = 0;
 long timer_comm;
 long timer_test;
 uint16_t rainbow_timer;
@@ -122,10 +123,16 @@ void setup() {
 void loop() {
   if (millis() - timer >= 20){
     timer = millis();
-    move_servos();
+    tick ++;
+
+    // The neopixels library does not allow interrupts, causing glitches in the movement, so these need to be done on alternate loops.
+    if (tick % 2 == 0){
+      run_emotions();
+    } else{
+      move_servos();
+    }
     if (huskylens_connected) husky_lens();
     if (tracking_enabled) track_face();
-    run_emotions();
   }
   read_buttons();
   if (Serial.available()) receive_communication();
@@ -262,7 +269,7 @@ void receive_communication() {
       if (strlen(value) >= 3){
         display_button_colors(value[0], value[1], value[2]);
       }
-    } else if(strcmp(cmd, "MEMORY") == 0) {
+    } else if(strcmp(cmd, "M") == 0) {
         Serial.print(F("Free memory: "));
         Serial.print(freeMemory());
         Serial.println(F(" bytes"));

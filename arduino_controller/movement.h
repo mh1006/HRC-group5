@@ -2,7 +2,7 @@
 
 // ============================================
 // --------------- SERVO MOTORS ---------------
-// ============================================
+// ============================================ SERVO,(180,0);.
 
 void move_servos(){
   // Smooth movement logic: prevents aggressive jerks when tracking
@@ -12,7 +12,7 @@ void move_servos(){
       pos = target;
       speed = 0;
     } else {
-      speed = constrain(constrain(target - pos, speed - smoothing_speed, speed + smoothing_speed), -1.0, 1.0);
+      speed = constrain(constrain(target - pos, speed - smoothing_speed, speed + smoothing_speed), -0.5, 0.5);
       pos += speed;
       s.write(pos);
     }
