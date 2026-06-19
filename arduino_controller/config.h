@@ -41,6 +41,7 @@ extern bool tracking_enabled;
 
 // --- Buttons ---
 extern bool buttonStates[3];
+extern int pressedButton;
 
 // --- LCD for the LCD button ---
 extern rgb_lcd lcd;
@@ -50,6 +51,7 @@ extern Adafruit_NeoPixel led_matrices;
 
 // --- Other eye variables ---
 extern int LED_BRIGHTNESS;
+extern int RAINBOW_BRIGHTNESS; // When displaying the rainbow, the minimum value for visibility is 24
 extern Emotion eye_emotion;
 
 extern char neutral_color, happy_color, angry_color, sad_color;

@@ -12,7 +12,7 @@
 long timer;
 long timer_comm;
 long timer_test;
-int rainbow_timer;
+uint16_t rainbow_timer;
 
 // Servos
 float smoothing_speed = 0.05;
@@ -38,6 +38,7 @@ SoftwareSerial mp3(AUDIO_PIN_1, AUDIO_PIN_2);
 
 // Buttons (LOW = false, HIGH = true)
 bool buttonStates[3] = {LOW, LOW, LOW}; 
+int pressedButton = 3; // There are 3 buttons; 0, 1 and 2. If pressedButton = 3, no button has been pressed, as this is outside of the range
 
 // All led matrices need to be in 1 object and change pins, otherwise it uses too much memory.
 Adafruit_NeoPixel led_matrices(LED_COUNT, EYE_PIN);
@@ -47,6 +48,7 @@ rgb_lcd lcd;
 
 // Other eye stuff
 int LED_BRIGHTNESS = 8;
+int RAINBOW_BRIGHTNESS = 30;
 Emotion eye_emotion = NEUTRAL;
 
 // Hues of different eye emotions
@@ -159,8 +161,10 @@ void run_emotions(){
       display_matrices(surprised, neutral_color);
       break;
     case RAINBOW:
-      led_matrices.rainbow(rainbow_timer);
-      rainbow_timer += 256;
+      for (int i = 0; i < LED_COUNT; i++) {
+        led_matrices.setPixelColor(i, led_matrices.gamma32(led_matrices.ColorHSV(rainbow_timer + (i * 65536L / LED_COUNT), 255, RAINBOW_BRIGHTNESS)));
+      }
+      rainbow_timer = int((rainbow_timer + 256) % 65536);
       break;
   }
   led_matrices.show();
@@ -275,19 +279,29 @@ bool same_face(HUSKYLENSResult new_face){
   else return true;
 }
 
+// Sends the communication to python in json format for easy extraction
 void send_communication(){
-  if (face_detected && !same_face(face)){
-      // Serial.println(String() + F("Block:xCenter=") + result.xCenter + F(",yCenter=") + result.yCenter + F(",width=") + result.width + F(",height=") + result.height + F(",ID=") + result.ID);
-      last_face = {face.xCenter, face.yCenter, face.width, face.height};
-      // As string concatenation is very bad for performance and made the memory run out, this is sadly the best way I've found to do this :(
-      Serial.print(F("{\"detected_face\": {\"xCenter\": "));
-      Serial.print(face.xCenter);
-      Serial.print(F(", \"yCenter\": "));
-      Serial.print(face.yCenter);
-      Serial.print(F(", \"width\": "));
-      Serial.print(face.width);
-      Serial.print(F(", \"height\": "));
-      Serial.print(face.height);
-      Serial.println(F("}}"));
+  if ((face_detected && !same_face(face)) || pressedButton != 3){
+      Serial.print(F("{"));
+      if (face_detected && !same_face(face)){
+        // Serial.println(String() + F("Block:xCenter=") + result.xCenter + F(",yCenter=") + result.yCenter + F(",width=") + result.width + F(",height=") + result.height + F(",ID=") + result.ID);
+        last_face = {face.xCenter, face.yCenter, face.width, face.height};
+        // As string concatenation is very bad for performance and made the memory run out, this is sadly the best way I've found to do this :(
+        Serial.print(F("\"detected_face\": {\"xCenter\": "));
+        Serial.print(face.xCenter);
+        Serial.print(F(", \"yCenter\": "));
+        Serial.print(face.yCenter);
+        Serial.print(F(", \"width\": "));
+        Serial.print(face.width);
+        Serial.print(F(", \"height\": "));
+        Serial.print(face.height);
+        Serial.print(F("}"));
+      }
+      if (pressedButton != 3){
+        Serial.print(F("\"pressed_button\": "));
+        Serial.print(pressedButton);
+        pressedButton = 3;
+      }
+      Serial.println(F("}"));
   }
 }

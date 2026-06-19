@@ -3,10 +3,11 @@
 
 #include "config.h"
 
-void display_matrix(byte arr[], Color matrix_color, bool left) {
+void display_matrix(byte arr[], char matrix_color_char, bool left) {
   // We will draw a circle on the display
   // It is a hexagonal matrix, which means we have to do some math to know where each pixel is on the screen
 
+  Color matrix_color = char_to_color(matrix_color_char);
   int rows[] = {4, 5, 6, 7, 6, 5, 4};      // The matrix has 4, 5, 6, 7, 6, 5, 4 rows.
   int NUM_COLUMNS = 7;                     // There are 7 columns
   int index = (left) ? 0 : 37;             // If we draw the left eye, we have to add an offset of 37 (4+5+6+7+6=5+4)
@@ -23,9 +24,9 @@ void display_matrix(byte arr[], Color matrix_color, bool left) {
 }
 
 void display_matrices(byte arr[], char matrix_color, char other_color = '\0'){
-  display_matrix(arr, char_to_color(matrix_color), true);
-  if (other_color == '\0') {display_matrix(arr, char_to_color(matrix_color), false);}
-  else{ display_matrix(arr, char_to_color(other_color), false);}
+  display_matrix(arr, matrix_color, true);
+  if (other_color == '\0') {display_matrix(arr, matrix_color, false);}
+  else{ display_matrix(arr, other_color, false);}
 }
 
 #endif

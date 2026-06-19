@@ -28,15 +28,19 @@ void read_buttons(){
     bool reading = digitalRead(BUTTON_PINS[i]); 
     if (reading != buttonStates[i]){
       buttonStates[i] = reading;
-      char send_colors[3];
-      for (int j = 0; j < 3; j++){
-        if (j == i){
-          send_colors[i] = 'C';
-        } else{
-          send_colors[j] = current_button_colors[j];
-        }
-      }   
-      display_button_colors(send_colors[0], send_colors[1], send_colors[2]);
+      if (reading){
+        pressedButton = i;
+      }
+      // The following code is just setting the accompanying color to cyan for testing purposes. 
+      // char send_colors[3];
+      // for (int j = 0; j < 3; j++){
+      //   if (j == i){
+      //     send_colors[i] = 'C';
+      //   } else{
+      //     send_colors[j] = current_button_colors[j];
+      //   }
+      // }   
+      // display_button_colors(send_colors[0], send_colors[1], send_colors[2]);
     }
   }
 }
