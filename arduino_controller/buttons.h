@@ -6,6 +6,9 @@ char current_button_colors[3] = {'O', 'O', 'O'};
 
 // Button 1 and 2 are the led matrices, 3 is the LCD display
 void display_button_colors(char button_1, char button_2, char button_3){
+  if (button_1 == 'X'){ button_1 = current_button_colors[0];}
+  if (button_2 == 'X'){ button_2 = current_button_colors[1];}
+  if (button_3 == 'X'){ button_3 = current_button_colors[2];}
   led_matrices.setPin(BUTTON_MATRICES_PIN);
   led_matrices.clear();
   current_button_colors[0] = button_1;

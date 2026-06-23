@@ -184,7 +184,7 @@ void run_emotions(){
 // Proportional gain: how aggressively the head chases the face.
 // 0.1 means a 160px error (half the screen) moves the servo 16°. 
 // TODO: Tune as needed.
-#define TRACKING_GAIN 0.1f
+#define TRACKING_GAIN 0.5f
 
 void track_face() {
   if (face_detected) {
@@ -263,7 +263,8 @@ void receive_communication() {
         servo_vertical_target   = servo_vertical_default_pos;
       }
     } else if (strcmp(cmd, "BUTTONS") == 0) {
-      // ex: BUTTONS,RGB;.
+      // ex: BUTTONS,RGB;. 
+      // The available colors can be found in util.h, use 'X' for a button to keep the same colour 
       Serial.print(F("Setting game colors to: "));
       Serial.println(value);
       if (strlen(value) >= 3){
