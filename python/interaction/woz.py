@@ -66,14 +66,22 @@ class WozOverride:
             self._listen_unix()
 
     def _listen_windows(self):
-        while self._running:
-            if msvcrt.kbhit():
-                char = msvcrt.getwch().lower()
-                self._handle(char)
-            else:
-                threading.Event().wait(0.05)
+        try:
+            while self._running:
+                if msvcrt.kbhit():
+                    char = msvcrt.getwch().lower()
+                    self._handle(char)
+                else:
+                    threading.Event().wait(0.05)
+        except Exception as e:
+            print(f"[WoZ] Keyboard listener crashed: {e!r} — overrides disabled.")
 
     def _listen_unix(self):
+        if not sys.stdin.isatty():
+            print("[WoZ] stdin is not a terminal — keyboard override disabled. "
+                  "Run main.py directly in a real terminal (not via an IDE 'Run' "
+                  "button or a piped/redirected stdin) for WoZ keys to work.")
+            return
         fd = sys.stdin.fileno()
         old_settings = termios.tcgetattr(fd)
         try:
@@ -83,6 +91,8 @@ class WozOverride:
                 if ready:
                     char = sys.stdin.read(1).lower()
                     self._handle(char)
+        except Exception as e:
+            print(f"[WoZ] Keyboard listener crashed: {e!r} — overrides disabled.")
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
