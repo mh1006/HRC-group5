@@ -34,9 +34,18 @@ class Emotion(str, Enum):
 
 
 class CommandType(str, Enum):
-    EYES       = "EYES"
-    SERVO      = "SERVO"
-    EYES_COLOR = "EYES_COLOR"  # game color display: RED | BLUE | GREEN | YELLOW
+    EYES    = "EYES"
+    SERVO   = "SERVO"
+    BUTTONS = "BUTTONS"  # game color display: 3 chars, one per eye matrix + LCD
+
+
+# Maps a game color name to the single-char code Arduino's char_to_color() expects
+_COLOR_CHARS = {
+    "RED":    "R",
+    "GREEN":  "G",
+    "BLUE":   "B",
+    "YELLOW": "Y",
+}
 
 
 # ── Controller ─────────────────────────────────────────────────────────────────
@@ -128,11 +137,13 @@ class ArduinoController:
 
     def set_game_color(self, color: str):
         """
-        Show a solid color on the robot's eyes during the color game.
+        Show a solid color across both eye matrices and the LCD during the color game.
         color: "RED" | "BLUE" | "GREEN" | "YELLOW"
-        Arduino must handle EYES_COLOR in its communication() function.
+        Arduino's BUTTONS handler expects 3 single-char color codes (one per
+        eye matrix + the LCD) — see buttons.h::display_button_colors().
         """
-        self.send((CommandType.EYES_COLOR, color))
+        char = _COLOR_CHARS[color.upper()]
+        self.send((CommandType.BUTTONS, char * 3))
 
     def set_tracking(self, enabled: bool):
         """Enable or disable face-tracking servos on the Arduino."""
