@@ -11,28 +11,38 @@ Exit conditions shared by both games:
   - Completing all rounds → robot shows HAPPY, game returns True.
 
 Arduino serial protocol used here:
-  - Outgoing: set_game_color(color), set_emotion(emotion)
-  - Incoming: "BTN,<COLOR>" lines emitted by check_buttons() in sensor.h
+  - Outgoing: set_game_color(color) for a "watch this" cue, set_button_colors(colors)
+    to assign one color per physical button (2 eye matrices + LCD), set_emotion(emotion)
+  - Incoming: JSON {"pressed_button": <0|1|2>} lines, parsed via arduino.parse_button()
+
+There are only 3 physical buttons (arduino_controller/config.h::BUTTON_PINS), so
+each round 3 colors are randomly drawn from the full palette and assigned to the
+3 buttons — which button means which color rotates every round.
 """
 
 import random
 import time
 from python.hardware.arduino_controller import ArduinoController, Emotion
 
-COLORS = ["RED", "BLUE", "GREEN", "YELLOW"]
+COLORS = ["RED", "GREEN", "BLUE", "YELLOW", "CYAN", "PURPLE", "WHITE"]
 
 
 class ColorGame:
     """
     Phase 1 — Color Match.
 
-    Each round the robot lights its eyes with a random color.
-    The child must press the matching button before time runs out.
+    Each round 3 colors are randomly drawn from the palette and assigned to
+    the 3 physical buttons (rotates every round — there's no fixed button↔color
+    mapping). The robot then flashes the target color as a cue before revealing
+    the button layout, and the child must press the button currently showing
+    that color before time runs out.
 
     Exact per-round behavior
     ────────────────────────
-    1. Eyes light up with a random color (RED / BLUE / GREEN / YELLOW).
-    2. Robot waits for a button press.
+    1. 3 random colors are assigned to the 3 buttons; one of them is picked as
+       the target and flashed solo across all indicators as a "watch this" cue.
+    2. The button layout (3 distinct colors) is revealed and the robot waits
+       for a button press.
        • Correct button  → HAPPY eyes for 0.5 s, then next round.
        • Wrong button or timeout → SAD eyes for 1 s, then the same round retries.
          After max_retries failed attempts the game ends.
@@ -70,17 +80,22 @@ class ColorGame:
         return True
 
     def _run_round(self) -> bool:
-        target_color = random.choice(COLORS)
+        button_colors = random.sample(COLORS, 3)
+        target_index = random.randrange(3)
+        target_color = button_colors[target_index]
         time_limit = max(2.0, self.time_limit - self.round * 0.3)
 
-        self.arduino.drain_log()            # discard stale presses from last round
-        self.arduino.set_game_color(target_color)
+        self.arduino.drain_log()                  # discard stale presses from last round
+        self.arduino.set_game_color(target_color)  # cue: flash target color solo
+        time.sleep(0.6)
+        self.arduino.set_button_colors(button_colors)  # reveal the button layout
+        self.arduino.drain_log()                  # discard presses made during the cue
 
         deadline = time.time() + time_limit
         while time.time() < deadline:
-            event = self._poll_button()
-            if event:
-                if event == target_color:
+            pressed_index = self._poll_button()
+            if pressed_index is not None:
+                if pressed_index == target_index:
                     self.score += 1
                     self._on_correct()
                     return True
@@ -90,10 +105,11 @@ class ColorGame:
 
         return False                        # timeout
 
-    def _poll_button(self) -> str | None:
+    def _poll_button(self) -> int | None:
         for line in self.arduino.drain_log():
-            if line.startswith("BTN,"):
-                return line.split(",")[1].strip()
+            index = self.arduino.parse_button(line)
+            if index is not None:
+                return index
         return None
 
     def _on_correct(self):
@@ -113,34 +129,38 @@ class SequenceGame:
     """
     Phase 2 — Sequence Repeat (Simon Says).
 
-    The robot shows a sequence of colors one at a time. The child must
+    Each round 3 colors are randomly assigned to the 3 physical buttons (fixed
+    for the whole round) and the robot shows a sequence of button positions
+    one at a time, by flashing each position's color solo. The child must
     then press the buttons in exactly the same order.
 
-    Each round the sequence grows by one color (start_length + round - 1).
+    Each round the sequence grows by one step (start_length + round - 1).
 
     Exact per-round behavior
     ────────────────────────
     DEMO PHASE — robot shows the sequence:
       1. SURPRISED eyes for 0.6 s  →  signals "watch me carefully".
-      2. For each color in the sequence:
-           a. Eyes light up with that color for 1.2 s.
-           b. Eyes return to SURPRISED for 0.4 s  (the gap makes two consecutive
-              identical colors feel like separate steps, not one long flash).
-      3. GO SIGNAL — robot rapidly cycles through all four colors
-         (RED → BLUE → GREEN → YELLOW) three times, each color shown for 0.1 s
-         (~1.2 s total). This acts as a language-free countdown / "your turn" cue.
-      4. NEUTRAL eyes for 0.3 s.
+      2. For each step in the sequence:
+           a. Only that step's button lights up (its assigned color), others
+              dark, for 1.2 s.
+           b. All indicators go dark for 0.4 s  (the gap makes two consecutive
+              identical steps feel like separate flashes, not one long one).
+      3. GO SIGNAL — robot rapidly cycles through the color palette three
+         times, each color shown for 0.1 s (~1.2 s total). This acts as a
+         language-free countdown / "your turn" cue.
+      4. The round's 3 button colors are revealed together, NEUTRAL eyes for 0.3 s.
       5. Serial buffer is drained  →  any accidental button presses made
          during the demo are discarded.
 
     INPUT PHASE — child repeats the sequence:
-      For each color the child must press (in order):
+      For each step the child must press the matching button (in order):
         • No press within 8 s    → timeout → treated as wrong (see below).
         • Wrong button pressed   → SAD eyes for 1 s, then the whole round replays
                                    (same sequence shown again). After max_retries
                                    failed attempts the game ends.
-        • Correct button pressed → eyes briefly flash that color for 0.25 s,
-                                   then wait for the next button in the sequence.
+        • Correct button pressed → that button briefly flashes solo for 0.25 s,
+                                   then the full layout returns and the robot
+                                   waits for the next button in the sequence.
 
     End-of-round / end-of-game behavior
     ─────────────────────────────────────
@@ -166,11 +186,12 @@ class SequenceGame:
         self.score = 0
 
         for self.round in range(1, self.max_rounds + 1):
-            length   = self.start_length + self.round - 1
-            sequence = [random.choice(COLORS) for _ in range(length)]
+            length        = self.start_length + self.round - 1
+            button_colors = random.sample(COLORS, 3)
+            sequence      = [random.randrange(3) for _ in range(length)]
 
             for attempt in range(self.max_retries + 1):
-                correct = self._run_round(sequence)
+                correct = self._run_round(sequence, button_colors)
                 if correct:
                     break
                 self._on_wrong()
@@ -183,47 +204,56 @@ class SequenceGame:
         self._on_win()
         return True
 
-    def _run_round(self, sequence: list) -> bool:
-        self._show_sequence(sequence)
-        self._signal_your_turn()
+    def _run_round(self, sequence: list, button_colors: list) -> bool:
+        self._show_sequence(sequence, button_colors)
+        self._signal_your_turn(button_colors)
 
-        for expected in sequence:
-            pressed = self._wait_for_button(self.INPUT_TIMEOUT)
-            if pressed != expected:
+        for expected_index in sequence:
+            pressed_index = self._wait_for_button(self.INPUT_TIMEOUT)
+            if pressed_index != expected_index:
                 return False                # wrong button or timeout
             # Brief positive flash so child knows this step was correct
-            self.arduino.set_game_color(pressed)
+            self._flash_single(pressed_index, button_colors)
             time.sleep(0.25)
+            self.arduino.set_button_colors(button_colors)  # restore full layout
 
         return True
 
-    def _show_sequence(self, sequence: list):
+    def _flash_single(self, index: int, button_colors: list):
+        """Light only one button's indicator, others off."""
+        colors = ["OFF", "OFF", "OFF"]
+        colors[index] = button_colors[index]
+        self.arduino.set_button_colors(colors)
+
+    def _show_sequence(self, sequence: list, button_colors: list):
         self.arduino.set_emotion(Emotion.SURPRISED)
         time.sleep(0.6)
 
-        for color in sequence:
-            self.arduino.set_game_color(color)
+        for index in sequence:
+            self._flash_single(index, button_colors)
             time.sleep(self.COLOR_SHOW_DURATION)
-            self.arduino.set_game_color("OFF")  # brief dark pause separates consecutive identical colors
+            self.arduino.set_game_color("OFF")  # brief dark pause separates consecutive identical steps
             time.sleep(self.COLOR_GAP_DURATION)
 
-    def _signal_your_turn(self):
-        # Rapid 4-color cycle × 3 = language-free "go!" countdown
+    def _signal_your_turn(self, button_colors: list):
+        # Rapid palette cycle × 3 = language-free "go!" countdown
         for _ in range(3):
             for color in COLORS:
                 self.arduino.set_game_color(color)
                 time.sleep(0.1)
 
+        self.arduino.set_button_colors(button_colors)  # reveal the round's button layout
         self.arduino.set_emotion(Emotion.NEUTRAL)
         time.sleep(0.3)
         self.arduino.drain_log()    # discard any presses made during the demo
 
-    def _wait_for_button(self, timeout: float) -> str | None:
+    def _wait_for_button(self, timeout: float) -> int | None:
         deadline = time.time() + timeout
         while time.time() < deadline:
             for line in self.arduino.drain_log():
-                if line.startswith("BTN,"):
-                    return line.split(",")[1].strip()
+                index = self.arduino.parse_button(line)
+                if index is not None:
+                    return index
             time.sleep(0.01)
         return None                 # timeout → caller treats as wrong
 

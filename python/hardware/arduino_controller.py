@@ -40,11 +40,16 @@ class CommandType(str, Enum):
 
 
 # Maps a game color name to the single-char code Arduino's char_to_color() expects
+# (see util.h::char_to_color() — any other char is treated as "off")
 _COLOR_CHARS = {
     "RED":    "R",
     "GREEN":  "G",
     "BLUE":   "B",
     "YELLOW": "Y",
+    "CYAN":   "C",
+    "PURPLE": "P",
+    "WHITE":  "W",
+    "OFF":    "O",
 }
 
 
@@ -137,13 +142,22 @@ class ArduinoController:
 
     def set_game_color(self, color: str):
         """
-        Show a solid color across both eye matrices and the LCD during the color game.
-        color: "RED" | "BLUE" | "GREEN" | "YELLOW"
-        Arduino's BUTTONS handler expects 3 single-char color codes (one per
-        eye matrix + the LCD) — see buttons.h::display_button_colors().
+        Show one solid color across both eye matrices and the LCD (e.g. as a
+        "watch this color" cue, or to clear all three with "OFF").
+        color: one of _COLOR_CHARS' keys, e.g. "RED" | "CYAN" | "OFF"
         """
         char = _COLOR_CHARS[color.upper()]
         self.send((CommandType.BUTTONS, char * 3))
+
+    def set_button_colors(self, colors: list[str]):
+        """
+        Assign a different color to each of the 3 physical buttons (2 eye
+        matrices + LCD — see buttons.h::display_button_colors()). This is
+        how the color game rotates which button means which color each round.
+        colors: list of exactly 3 color names, e.g. ["RED", "CYAN", "WHITE"]
+        """
+        chars = "".join(_COLOR_CHARS[c.upper()] for c in colors)
+        self.send((CommandType.BUTTONS, chars))
 
     def set_tracking(self, enabled: bool):
         """Enable or disable face-tracking servos on the Arduino."""
@@ -175,6 +189,19 @@ class ArduinoController:
         """Parse a face JSON line from the Arduino. Returns the face dict or None."""
         try:
             return json.loads(line).get("detected_face")
+        except (json.JSONDecodeError, AttributeError):
+            return None
+
+    def parse_button(self, line: str) -> int | None:
+        """
+        Parse a button-press JSON line from the Arduino.
+        Returns the pressed button's index (0, 1, or 2), or None if this
+        line carries no button press. Arduino only includes "pressed_button"
+        in its JSON blob when a button was just pressed (see
+        arduino_controller.ino::send_communication()).
+        """
+        try:
+            return json.loads(line).get("pressed_button")
         except (json.JSONDecodeError, AttributeError):
             return None
 
