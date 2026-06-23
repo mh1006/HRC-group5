@@ -10,8 +10,9 @@
 
 // Pin locations
 // The top servo should be in the closest slot to the USB, then both plugged into D6 on the grove shield
-// The huskylens should be plugged into any I2C port. So should the LCD
-// The EYE matrices should be plugged into D3 on the shield. From the arduino it should go into "in" on one matrix, then from that out to the in of the next.
+// The huskylens should be plugged into any I2C port. So should the LCD.
+// The EYE matrices should be plugged into D3 on the shield. The BUTTON matrices should be plugged into D8 on the shield. For both sets of matrices:
+// It should go from the arduino into "in" on one matrix, then from that out to the in of the next.
 // The mp3 module should be plugged into D2 on the shield
 #define SERVO_PIN_1   7  // left right
 #define SERVO_PIN_2   6  // up down
