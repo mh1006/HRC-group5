@@ -1,14 +1,19 @@
 #include "config.h"
+#include "util.h"
 #include "movement.h"
 #include "vision.h"
 #include "audio.h"
+#include "buttons.h"
 #include "led_matrices.h"
+
+#include <MemoryFree.h>
 
 // Timing of loop
 long timer;
+long tick = 0;
 long timer_comm;
 long timer_test;
-int rainbow_timer;
+uint16_t rainbow_timer;
 
 // Servos
 float smoothing_speed = 0.05;
@@ -32,92 +37,43 @@ bool tracking_enabled = false;
 // Audio player
 SoftwareSerial mp3(AUDIO_PIN_1, AUDIO_PIN_2);
 
-// Led matrices
-Adafruit_NeoPixel pixels(LED_COUNT, LED_PIN);
+// Buttons (LOW = false, HIGH = true)
+bool buttonStates[3] = {LOW, LOW, LOW}; 
+int pressedButton = 3; // There are 3 buttons; 0, 1 and 2. If pressedButton = 3, no button has been pressed, as this is outside of the range
+
+// All led matrices need to be in 1 object and change pins, otherwise it uses too much memory.
+Adafruit_NeoPixel led_matrices(LED_COUNT, EYE_PIN);
+
+// lcd screen
+rgb_lcd lcd;
+
+// Other eye stuff
 int LED_BRIGHTNESS = 8;
+int RAINBOW_BRIGHTNESS = 30;
 Emotion eye_emotion = NEUTRAL;
 
 // Hues of different eye emotions
-int neutral_hue = 125;
-int happy_hue = 80;
-int angry_hue = 0;
-int sad_hue = 150;
+char neutral_color = 'W';
+char happy_color = 'G';
+char angry_color = 'R';
+char sad_color = 'B';
 
 // Different eye byte arrays
-byte neutral[] = {
-  B0000,
-  B01110,
-  B011110,
-  B0111110,
-  B011110,
-  B01110,
-  B0000
-};
-
-byte blink1[] = {
-  B0000,
-  B00000,
-  B011110,
-  B0111110,
-  B011110,
-  B00000,
-  B0000
-};
-
-byte blink2[] = {
-  B0000,
-  B00000,
-  B000000,
-  B1111111,
-  B000000,
-  B00000,
-  B0000
-};
-
-byte surprised[] = {
-  B1111,
-  B11111,
-  B111111,
-  B1111111,
-  B111111,
-  B11111,
-  B1111
-};
-
-byte happy[] = {
-  B1111,
-  B11111,
-  B111111,
-  B1100011,
-  B000000,
-  B00000,
-  B0000
-};
-
-byte angry[] = {
-  B0000,
-  B10000,
-  B110000,
-  B1111000,
-  B111110,
-  B11111,
-  B1111
-};
-
-byte sad[] = {
-  B0000,
-  B00001,
-  B000011,
-  B0001111,
-  B011111,
-  B11111,
-  B1111
-};
-
+const byte neutral[] PROGMEM = { B0000, B01110, B011110, B0111110, B011110, B01110, B0000 };
+const byte blink1[]  PROGMEM = { B0000, B00000, B011110, B0111110, B011110, B00000, B0000 };
+const byte blink2[]  PROGMEM = { B0000, B00000, B000000, B1111111, B000000, B00000, B0000 };
+const byte surprised[] PROGMEM = { B1111, B11111, B111111, B1111111, B111111, B11111, B1111 };
+const byte happy[]   PROGMEM = { B1111, B11111, B111111, B1100011, B000000, B00000, B0000 };
+const byte angry[]   PROGMEM = { B0000, B10000, B110000, B1111000, B111110, B11111, B1111 };
+const byte sad[]     PROGMEM = { B0000, B00001, B0000011, B0001111, B011111, B11111, B1111 };
 
 void setup() {
   Serial.begin(115200);
-  Serial.setTimeout(2000);
+  Serial.setTimeout(50);
+
+  Serial.print(F("Free memory: "));
+  Serial.print(freeMemory());
+  Serial.println(F(" bytes"));
 
   // Wire is for communication with I2C ports, which is what huskylens should be plugged into
   Wire.begin();
@@ -125,7 +81,7 @@ void setup() {
       Serial.println(F("HuskyLens failed to start! Please check the I2C connection."));
       delay(1000);
       if (!huskylens.begin(Wire)) {
-        Serial.println("Failed to start HuskyLens twice, continuing without camera.");
+        Serial.println(F("Failed to start HuskyLens twice, continuing without camera."));
         huskylens_connected = false;
         Wire.end();
       }
@@ -139,8 +95,23 @@ void setup() {
   servo_vertical.write(servo_vertical_default_pos);
 
   // Initialise the led matrices
-  pixels.begin();
+  led_matrices.begin();
   rainbow_timer = 0;
+
+  led_matrices.setPin(BUTTON_MATRICES_PIN);
+  led_matrices.clear();
+  display_button_colors('O', 'O', 'O');
+  led_matrices.show();
+  led_matrices.setPin(EYE_PIN);
+
+  // Initialise lcd with #rows and #cols.
+  lcd.begin(16,2);
+  lcd.clear();
+
+  // Start all buttons
+  for (int i =0; i < 3; i++){
+    pinMode(BUTTON_PINS[i], INPUT);
+  }
 
   // Start the connection with the audio module
   mp3.begin(9600);
@@ -152,11 +123,18 @@ void setup() {
 void loop() {
   if (millis() - timer >= 20){
     timer = millis();
-    move_servos();
+    tick ++;
+
+    // The neopixels library does not allow interrupts, causing glitches in the movement, so these need to be done on alternate loops.
+    if (tick % 2 == 0){
+      run_emotions();
+    } else{
+      move_servos();
+    }
     if (huskylens_connected) husky_lens();
     if (tracking_enabled) track_face();
-    run_emotions();
   }
+  read_buttons();
   if (Serial.available()) receive_communication();
   send_communication();
 }
@@ -164,48 +142,39 @@ void loop() {
 // ============================================
 // ----------------- Emotions -----------------
 // ============================================
-
-Emotion string_to_emotion(String emotion_string){
-    if(emotion_string == "SAD") return SAD;
-    else if(emotion_string == "SURPRISED") return SURPRISED;
-    else if(emotion_string == "HAPPY") return HAPPY;
-    else if(emotion_string == "ANGRY") return ANGRY;
-    else if (emotion_string == "RAINBOW") return RAINBOW;
-    return NEUTRAL;
-}
-
 void run_emotions(){
-  pixels.clear();  
-
+  led_matrices.clear();
   switch (eye_emotion) {
     case NEUTRAL:
-      if (millis() % 5000 < 150) display_eyes(blink1, neutral_hue);
-      else if (millis() % 5000 < 300) display_eyes(blink2, neutral_hue);
-      else if (millis() % 5000 < 450) display_eyes(blink1, neutral_hue);
-      else display_eyes(neutral, neutral_hue);
+      if (millis() % 5000 < 150) display_matrices(blink1, neutral_color);
+      else if (millis() % 5000 < 300) display_matrices(blink2, neutral_color);
+      else if (millis() % 5000 < 450) display_matrices(blink1, neutral_color);
+      else display_matrices(neutral, neutral_color);
       break;
 
     case HAPPY:
-      display_eyes(happy, happy_hue);
+      display_matrices(happy, happy_color);
       break;
 
     case SAD:
-      display_eyes(sad, sad_hue);  
+      display_matrices(sad, sad_color);  
       break;
 
     case ANGRY:
-      display_eyes(angry, angry_hue);
+      display_matrices(angry, angry_color);
       break;
 
     case SURPRISED:
-      display_eyes(surprised, neutral_hue);
+      display_matrices(surprised, neutral_color);
       break;
     case RAINBOW:
-      pixels.rainbow(rainbow_timer);
-      rainbow_timer += 256;
+      for (int i = 0; i < LED_COUNT; i++) {
+        led_matrices.setPixelColor(i, led_matrices.gamma32(led_matrices.ColorHSV(rainbow_timer + (i * 65536L / LED_COUNT), 255, RAINBOW_BRIGHTNESS)));
+      }
+      rainbow_timer = int((rainbow_timer + 256) % 65536);
       break;
   }
-  pixels.show();
+  led_matrices.show();
 }
 
 // ============================================
@@ -236,55 +205,76 @@ void track_face() {
 // ============================================
 // ----------- Python communication -----------
 // ============================================
+// test command: BUTTONS,RGB;.
+
 
 void receive_communication() {
-  String data = Serial.readStringUntil('.');
-  data.trim();
+  static char buf[64];
+  int len = Serial.readBytesUntil('.', buf, sizeof(buf) - 1);
+  if (len == 0) return;
+  buf[len] = '\0'; // String ending char
 
-  // Data is a string of what we received, we will split it into the different values
-  // Each command is sent as "command_type", command; The final command in the data ends in "." to indicate the end of the command chain.
-  // Example of what the data could look like: "SERVO,(10,10);EYES,sad;."
-  if ((data.length() > 1) && (data.indexOf(";") > 0) && (data.indexOf(",") > 0)) {
-    // Send the received data back for debugging
-    // Serial.print(F("Received: ["));
-    // Serial.print(data);
-    // Serial.println(F("]"));
+  // Serial.print(F("Received: ["));
+  // Serial.print(buf);
+  // Serial.println(F("]"));
 
-    String command_pair;
-    String command_type;
-    String value;
-    for (int i = 0; data.length() > 2; i++){
-      command_pair = data.substring(0, data.indexOf(';'));
-      data = data.substring(data.indexOf(';') + 1, data.length());
+  // Pointers to the data and to the command seperator ;
+  char *data = buf;
+  char *semicolon;
 
-      command_type = command_pair.substring(0,command_pair.indexOf(','));
-      value = command_pair.substring(command_pair.indexOf(',') + 1);
+  // Each command ends in ; so this loops while there are still commands in the data
+  while ((semicolon = strchr(data, ';')) != NULL) {
+    // This splits the data into 2 strings in place, as '\0' indicates the end of a string
+    *semicolon = '\0';
 
-      if (command_type.equals("SERVO")) {
-        int first_value = value.substring(value.indexOf('(') + 1, value.indexOf(',')).toInt();
-        int second_value = value.substring(value.indexOf(',') + 1, value.indexOf(')')).toInt();
-        servo_horizontal_target = first_value;
-        servo_vertical_target = second_value;
-        // Serial.print(F("Setting servo 1 to: "));
-        // Serial.print(servo_horizontal_target);
-        // Serial.print(F(", Setting servo 2 to: "));
-        // Serial.println(servo_vertical_target);
-      }else if (command_type.equals("EYES")) {
-        // Serial.print(F("Setting eye emotion to: "));
-        // Serial.println(value);
-        eye_emotion = string_to_emotion(value);
-      }else if (command_type.equals("AUDIO")) {
-        // Serial.print(F("Playing audio file: "));
-        // Serial.println(value);
-        play_audio(value.toInt());
-      }else if (command_type.equals("TRACKING")) {
-        tracking_enabled = value.equals("ON");
-        if (!tracking_enabled) {
-          servo_horizontal_target = servo_horizontal_default_pos;
-          servo_vertical_target   = servo_vertical_default_pos;
-        }
+    // All commands are split by commas
+    char *comma = strchr(data, ',');
+    // If there is no comma, this command is invalid and we continue
+    if (!comma) { data = semicolon + 1; continue; }
+    *comma = '\0';
+
+    // Again using pointers to extract different parts of the data using '\0' to separate strings
+    char *cmd   = data;
+    char *value = comma + 1;
+
+    // String comparing function which returns 0 if strings are the same.
+    if (strcmp(cmd, "SERVO") == 0) {
+      char *c = strchr(value, ',');
+      // Atoi interprets string as int, it skips one for the parenthesis, as the servo commands are structured (180,180)
+      servo_horizontal_target = atoi(value + 1);
+      servo_vertical_target   = c ? atoi(c + 1) : 0;
+      // Serial.print(F("Setting servo 1 to: "));
+      // Serial.print(servo_horizontal_target);
+      // Serial.print(F(", Setting servo 2 to: "));
+      // Serial.println(servo_vertical_target);
+    } else if (strcmp(cmd, "EYES") == 0) {
+      // Serial.print(F("Setting eye emotion to: "));
+      // Serial.println(value);
+      eye_emotion = string_to_emotion(value);
+      run_emotions();
+    } else if (strcmp(cmd, "AUDIO") == 0) {
+      // Serial.print(F("Playing audio file: "));
+      // Serial.println(value);
+      play_audio(atoi(value));
+    } else if (strcmp(cmd, "TRACKING") == 0) {
+      tracking_enabled = (strcmp(value, "ON") == 0);
+      if (!tracking_enabled) {
+        servo_horizontal_target = servo_horizontal_default_pos;
+        servo_vertical_target   = servo_vertical_default_pos;
       }
+    } else if (strcmp(cmd, "BUTTONS") == 0) {
+      // ex: BUTTONS,RGB;.
+      Serial.print(F("Setting game colors to: "));
+      Serial.println(value);
+      if (strlen(value) >= 3){
+        display_button_colors(value[0], value[1], value[2]);
+      }
+    } else if(strcmp(cmd, "M") == 0) {
+        Serial.print(F("Free memory: "));
+        Serial.print(freeMemory());
+        Serial.println(F(" bytes"));
     }
+    data = semicolon + 1;
   }
 }
 
@@ -296,19 +286,29 @@ bool same_face(HUSKYLENSResult new_face){
   else return true;
 }
 
+// Sends the communication to python in json format for easy extraction
 void send_communication(){
-  if (face_detected && !same_face(face)){
-      // Serial.println(String() + F("Block:xCenter=") + result.xCenter + F(",yCenter=") + result.yCenter + F(",width=") + result.width + F(",height=") + result.height + F(",ID=") + result.ID);
-      last_face = {face.xCenter, face.yCenter, face.width, face.height};
-      // As string concatenation is very bad for performance and made the memory run out, this is sadly the best way I've found to do this :(
-      Serial.print(F("{\"detected_face\": {\"xCenter\": "));
-      Serial.print(face.xCenter);
-      Serial.print(F(", \"yCenter\": "));
-      Serial.print(face.yCenter);
-      Serial.print(F(", \"width\": "));
-      Serial.print(face.width);
-      Serial.print(F(", \"height\": "));
-      Serial.print(face.height);
-      Serial.println(F("}}"));
+  if ((face_detected && !same_face(face)) || pressedButton != 3){
+      Serial.print(F("{"));
+      if (face_detected && !same_face(face)){
+        // Serial.println(String() + F("Block:xCenter=") + result.xCenter + F(",yCenter=") + result.yCenter + F(",width=") + result.width + F(",height=") + result.height + F(",ID=") + result.ID);
+        last_face = {face.xCenter, face.yCenter, face.width, face.height};
+        // As string concatenation is very bad for performance and made the memory run out, this is sadly the best way I've found to do this :(
+        Serial.print(F("\"detected_face\": {\"xCenter\": "));
+        Serial.print(face.xCenter);
+        Serial.print(F(", \"yCenter\": "));
+        Serial.print(face.yCenter);
+        Serial.print(F(", \"width\": "));
+        Serial.print(face.width);
+        Serial.print(F(", \"height\": "));
+        Serial.print(face.height);
+        Serial.print(F("}"));
+      }
+      if (pressedButton != 3){
+        Serial.print(F("\"pressed_button\": "));
+        Serial.print(pressedButton);
+        pressedButton = 3;
+      }
+      Serial.println(F("}"));
   }
 }
