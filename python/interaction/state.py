@@ -41,23 +41,21 @@ class StateMachine:
             case State.IDLE:
                 print("Entered IDLE state!")
                 self.engagement_count = 0
-                # TODO: uncomment when arduino is ready
-                # self.arduino.on_idle()
-                # if self.arduino:
-                #     for line in self.arduino.drain_log():
-                #         face = self.arduino.parse_face(line)
-                #         if face and face["width"] >= FACE_PROXIMITY_THRESHOLD:
-                #             return State.ATTRACTING
-                #     time.sleep(0.1)
-                #     return State.IDLE
+                self.arduino.on_idle()
+                if self.arduino:
+                    for line in self.arduino.drain_log():
+                        face = self.arduino.parse_face(line)
+                        if face and face["width"] >= FACE_PROXIMITY_THRESHOLD:
+                            return State.ATTRACTING
+                    time.sleep(0.1)
+                    return State.IDLE
                 # Simulation fallback when no Arduino connected
                 time.sleep(3)
                 return State.ATTRACTING
 
             case State.ATTRACTING:
                 print("Entered Attracting state")
-                # TODO: uncomment when arduino is ready
-                # self.arduino.on_attracting()
+                self.arduino.on_attracting()
                 playsound('sounds/chameleon_sound.mp3')
                 return State.LISTENING
 
@@ -83,8 +81,7 @@ class StateMachine:
                 print("Entered ENGAGED state!")
                 self.retries = 0
                 self.engagement_count += 1  # track how many times child has responded
-                # TODO: uncomment when arduino is ready
-                # self.arduino.on_engaged()        # HAPPY eyes + face tracking 
+                self.arduino.on_engaged()        # HAPPY eyes + face tracking 
                 # TODO: play sound
                 if self.engagement_count >= 2:
                     self.engagement_count = 0
@@ -94,17 +91,15 @@ class StateMachine:
             case State.PLAYING:
                 print("Entered PLAYING state!")
                 self.retries = 0
-                # TODO: uncomment when arduino is ready
-                # self.arduino.on_playing()
-                # won = FullGame(self.arduino).run()
-                # return State.IDLE if won else State.CALMING
+                self.arduino.on_playing()
+                won = FullGame(self.arduino).run()
+                return State.IDLE if won else State.CALMING
                 return State.IDLE
 
             case State.CALMING:
                 print("Entered CALMING state!")
                 self.retries = 0
-                # TODO: uncomment when arduino is ready
-                # self.arduino.on_calming()        # SAD eyes (mirrors calm)
+                self.arduino.on_calming()        # SAD eyes (mirrors calm)
                 # TODO: play sound
                 # TODO: game?/send to arduino
                 return State.IDLE
@@ -114,12 +109,9 @@ class StateMachine:
                 self.retries += 1
                 if self.retries >= 5:
                     print("Interaction ended")
-                    # TODO: uncomment when arduino is ready
-                    # self.arduino.on_idle()
                     self.retries = 0
                     return State.IDLE
-                # TODO: uncomment when arduino is ready
-                # self.arduino.on_error()          # ANGRY eyes?
+                self.arduino.on_error()          # ANGRY eyes?
                 print("Retrying...")
                 return State.LISTENING
 
