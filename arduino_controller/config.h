@@ -6,18 +6,21 @@
 #include <Adafruit_NeoPixel.h>
 #include <MP3Player_KT403A.h>
 #include "HUSKYLENS.h"
+#include "rgb_lcd.h"
 
 // Pin locations
 // The top servo should be in the closest slot to the USB, then both plugged into D6 on the grove shield
-// The huskylens should be plugged into any I2C port.
-// The LED matrices should be plugged into D3 on the shield. From the arduino it should go into "in" on one matrix, then from that out to the in of the next.
+// The huskylens should be plugged into any I2C port. So should the LCD
+// The EYE matrices should be plugged into D3 on the shield. From the arduino it should go into "in" on one matrix, then from that out to the in of the next.
 // The mp3 module should be plugged into D2 on the shield
 #define SERVO_PIN_1   7  // left right
 #define SERVO_PIN_2   6  // up down
 #define AUDIO_PIN_1 2 // Receive pin 
 #define AUDIO_PIN_2 3 // Transmit pin
-#define LED_PIN 4
+#define EYE_PIN 4
+#define BUTTON_MATRICES_PIN 9
 #define LED_COUNT 74 // 37 per matrix
+const int BUTTON_PINS[3] = {A0, A1, A2};
 
 // GLOBAL VARIABLES
 
@@ -36,13 +39,23 @@ extern HUSKYLENSResult face;
 extern bool face_detected;
 extern bool tracking_enabled;
 
+// --- Buttons ---
+extern bool buttonStates[3];
+extern int pressedButton;
+
+// --- LCD for the LCD button ---
+extern rgb_lcd lcd;
+
 // --- Led matrices ---
-extern Adafruit_NeoPixel pixels;
+extern Adafruit_NeoPixel led_matrices;
+
+// --- Other eye variables ---
 extern int LED_BRIGHTNESS;
+extern int RAINBOW_BRIGHTNESS; // When displaying the rainbow, the minimum value for visibility is 24
 extern Emotion eye_emotion;
 
-extern int neutral_hue, happy_hue, angry_hue, sad_hue;
+extern char neutral_color, happy_color, angry_color, sad_color;
 // Eye patterns
-extern byte neutral[], blink1[], blink2[], surprised[], happy[], angry[], sad[];
+extern const byte neutral[], blink1[], blink2[], surprised[], happy[], angry[], sad[];
 
 #endif
