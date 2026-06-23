@@ -7,11 +7,10 @@ Matches the protocol already implemented in the Arduino sketch:
     Arduino replies with:  "Setting <type> to: <value>"
 
 You can chain multiple commands in one transmission:
-    send("EMOTION,HAPPY;SERVO,(90,30);")  →  "EMOTION,HAPPY;SERVO,(90,30);."
+    send("EYES,HAPPY;SERVO,(90,30);")  →  "EYES,HAPPY;SERVO,(90,30);."
 
 Supported command types (from the sketch's communication() function):
-    EMOTION  →  NEUTRAL | HAPPY | SAD | ANGRY | SURPRISED
-    EYES     →  (reserved in sketch, not yet handled, but forwarded)
+    EYES     →  NEUTRAL | HAPPY | SAD | ANGRY | SURPRISED
     SERVO    →  (horizontal, vertical) tuple — e.g. SERVO,(90,30);
 """
 
@@ -35,7 +34,6 @@ class Emotion(str, Enum):
 
 
 class CommandType(str, Enum):
-    EMOTION    = "EMOTION"
     EYES       = "EYES"
     SERVO      = "SERVO"
     EYES_COLOR = "EYES_COLOR"  # game color display: RED | BLUE | GREEN | YELLOW
@@ -51,7 +49,7 @@ class ArduinoController:
     -----
         arduino = ArduinoController(port="/dev/ttyUSB0")
         arduino.set_emotion(Emotion.HAPPY)
-        arduino.send_raw("EMOTION,SAD;SERVO,90;")   # chain manually if needed
+        arduino.send_raw("EYES,SAD;SERVO,90;")   # chain manually if needed
         arduino.close()
     """
 
@@ -126,7 +124,7 @@ class ArduinoController:
         Set the robot's facial emotion.
         Maps to the Arduino's `emotion` global and drives eye patterns + servos.
         """
-        self.send((CommandType.EMOTION, emotion.value))
+        self.send((CommandType.EYES, emotion.value))
 
     def set_game_color(self, color: str):
         """
