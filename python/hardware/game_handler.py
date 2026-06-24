@@ -88,7 +88,7 @@ class ColorGame:
 
         self.arduino.drain_log()                  # discard stale presses from last round
         self.arduino.set_game_color(target_color)  # cue: flash target color solo
-        time.sleep(0.6)
+        time.sleep(2.0)
         self.arduino.set_button_colors(button_colors)  # reveal the button layout
         self.arduino.drain_log()                  # discard presses made during the cue
 
@@ -263,12 +263,12 @@ class SequenceGame:
 
     def _on_correct(self):
         self.arduino.set_emotion(Emotion.HAPPY)
-        time.sleep(0.5)
+        time.sleep(1.0)
 
     def _on_wrong(self):
         self.arduino.set_emotion(Emotion.SAD)
         # TODO: sound?
-        time.sleep(1.0)
+        time.sleep(2.0)
 
     def _on_win(self):
         self.arduino.set_emotion(Emotion.HAPPY)
