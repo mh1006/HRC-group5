@@ -89,7 +89,12 @@ class StateMachine:
                 self.retries = 0
                 self.arduino.on_playing()
                 won = FullGame(self.arduino).run()
-                return State.IDLE if won else State.CALMING
+                if won:
+                    print("CONGRATS! YOU WON!")
+                    return state.IDLE
+                else:
+                    print("YOU LOST!")
+                    return state.CALMING
 
             case State.CALMING:
                 print("Entered CALMING state!")

@@ -14,13 +14,13 @@ Supported command types (from the sketch's communication() function):
     SERVO    →  (horizontal, vertical) tuple — e.g. SERVO,(90,30);
 """
 
+import re
 import serial
 import threading
 import time
 import json
 from queue import Queue, Empty
 from enum import Enum
-import json
 
 
 # ── Mirror the Arduino enums so Python stays in sync ──────────────────────────
@@ -196,14 +196,18 @@ class ArduinoController:
         """
         Parse a button-press JSON line from the Arduino.
         Returns the pressed button's index (0, 1, or 2), or None if this
-        line carries no button press. Arduino only includes "pressed_button"
-        in its JSON blob when a button was just pressed (see
-        arduino_controller.ino::send_communication()).
+        line carries no button press. Falls back to regex if JSON is garbled.
         """
         try:
             return json.loads(line).get("pressed_button")
         except (json.JSONDecodeError, AttributeError):
-            return None
+            pass
+        # Fallback: extract digit from garbled JSON if it looks like a button press
+        if "pressed" in line or "button" in line or ("button" in line.lower()):
+            match = re.search(r'([012])\s*}?\s*$', line)
+            if match:
+                return int(match.group(1))
+        return None
 
     # ── Convenience wrappers for each state in your state machine ──────────────
 

@@ -263,10 +263,8 @@ void receive_communication() {
         servo_vertical_target   = servo_vertical_default_pos;
       }
     } else if (strcmp(cmd, "BUTTONS") == 0) {
-      // ex: BUTTONS,RGB;. 
-      // The available colors can be found in util.h, use 'X' for a button to keep the same colour 
-      Serial.print(F("Setting game colors to: "));
-      Serial.println(value);
+      // ex: BUTTONS,RGB;.
+      // The available colors can be found in util.h, use 'X' for a button to keep the same colour
       if (strlen(value) >= 3){
         display_button_colors(value[0], value[1], value[2]);
       }

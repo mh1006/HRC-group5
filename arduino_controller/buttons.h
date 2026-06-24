@@ -14,11 +14,6 @@ void display_button_colors(char button_1, char button_2, char button_3){
   current_button_colors[0] = button_1;
   current_button_colors[1] = button_2;
   current_button_colors[2] = button_3;
-  Serial.print(button_1);
-  Serial.print(F(","));
-  Serial.print(button_2);
-  Serial.print(F(","));
-  Serial.println(button_3);
   display_matrices(surprised, button_1, button_2);
   led_matrices.show();
   led_matrices.setPin(EYE_PIN);

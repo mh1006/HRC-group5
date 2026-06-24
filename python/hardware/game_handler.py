@@ -46,8 +46,9 @@ class ColorGame:
        • Correct button  → HAPPY eyes for 0.5 s, then next round.
        • Wrong button or timeout → SAD eyes for 1 s, then the same round retries.
          After max_retries failed attempts the game ends.
-    3. Time limit starts at 5 s and shrinks by 0.3 s each round (floor: 2 s),
-       so the game gets harder as it progresses.
+    3. Time limit starts at 15 s and shrinks by 0.3 s each round (floor: 10 s),
+       so the game gets harder as it progresses while still giving the child
+       a realistic amount of time to find the right button.
 
     End-of-game behavior
     ────────────────────
@@ -61,7 +62,7 @@ class ColorGame:
         self.round = 0
         self.max_rounds = 5
         self.max_retries = max_retries
-        self.time_limit = 5.0       # seconds allowed in round 1
+        self.time_limit = 15.0      # seconds allowed in round 1
 
     def run(self) -> bool:
         """Run all rounds. Returns True if child completed every round correctly."""
@@ -83,7 +84,7 @@ class ColorGame:
         button_colors = random.sample(COLORS, 3)
         target_index = random.randrange(3)
         target_color = button_colors[target_index]
-        time_limit = max(2.0, self.time_limit - self.round * 0.3)
+        time_limit = max(10.0, self.time_limit - self.round * 0.3)
 
         self.arduino.drain_log()                  # discard stale presses from last round
         self.arduino.set_game_color(target_color)  # cue: flash target color solo
@@ -91,10 +92,13 @@ class ColorGame:
         self.arduino.set_button_colors(button_colors)  # reveal the button layout
         self.arduino.drain_log()                  # discard presses made during the cue
 
+        print(f"[Game] Button colors: 0={button_colors[0]}, 1={button_colors[1]}, 2={button_colors[2]}")
+        print(f"[Game] Target: button index {target_index} ({target_color})")
         deadline = time.time() + time_limit
         while time.time() < deadline:
             pressed_index = self._poll_button()
             if pressed_index is not None:
+                print(f"[Game] Pressed button index: {pressed_index}, needed: {target_index} -> {'CORRECT' if pressed_index == target_index else 'WRONG'}")
                 if pressed_index == target_index:
                     self.score += 1
                     self._on_correct()
@@ -154,7 +158,7 @@ class SequenceGame:
 
     INPUT PHASE — child repeats the sequence:
       For each step the child must press the matching button (in order):
-        • No press within 8 s    → timeout → treated as wrong (see below).
+        • No press within 15 s   → timeout → treated as wrong (see below).
         • Wrong button pressed   → SAD eyes for 1 s, then the whole round replays
                                    (same sequence shown again). After max_retries
                                    failed attempts the game ends.
@@ -171,7 +175,7 @@ class SequenceGame:
 
     COLOR_SHOW_DURATION = 1.2   # seconds each color is displayed during demo
     COLOR_GAP_DURATION  = 0.4   # seconds of SURPRISED gap between demo colors
-    INPUT_TIMEOUT       = 8.0   # seconds child has to press each button
+    INPUT_TIMEOUT       = 15.0  # seconds child has to press each button
 
     def __init__(self, arduino: ArduinoController, max_rounds: int = 3, start_length: int = 3, max_retries: int = 2):
         self.arduino = arduino
