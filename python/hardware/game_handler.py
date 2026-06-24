@@ -90,6 +90,7 @@ class ColorGame:
         self.arduino.set_game_color(target_color)  # cue: flash target color solo
         time.sleep(2.0)
         self.arduino.set_button_colors(button_colors)  # reveal the button layout
+        time.sleep(0.2)                           # give Arduino time to process and render
         self.arduino.drain_log()                  # discard presses made during the cue
 
         print(f"[Game] Button colors: 0={button_colors[0]}, 1={button_colors[1]}, 2={button_colors[2]}")
