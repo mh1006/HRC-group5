@@ -17,12 +17,13 @@ class State(Enum):
     ENGAGED = "ENGAGED"      # child responded
     PLAYING = "PLAYING"      # game started
     CALMING = "CALMING"      # calm child if stress detected
+    GOODBYE = "GOODBYE"      # person leaving — wave goodbye then return to idle
     ERROR = "ERROR"          # fallback
 
 
 # Face bounding-box width (pixels) at which a passerby is considered "close".
 # HuskyLens resolution is 320×240; tune this based on the robot's physical setup.
-# TODO: probably needs tuning 
+# TODO: probably needs tuning
 FACE_PROXIMITY_THRESHOLD = 80
 
 
@@ -97,10 +98,23 @@ class StateMachine:
                 won = FullGame(self.arduino).run()
                 if won:
                     print("CONGRATS! YOU WON!")
-                    return state.IDLE
+                    return State.LISTENING
                 else:
                     print("YOU LOST!")
-                    return state.CALMING
+                    return State.CALMING
+
+            case State.GOODBYE:
+                print("Entered GOODBYE state!")
+                self._leaving_since = None
+                self.arduino.on_goodbye()
+                # Follow the person while they leave, then reset
+                goodbye_deadline = time.time() + 3.0
+                while time.time() < goodbye_deadline:
+                    for line in self.arduino.drain_log():
+                        pass  # drain so face tracking stays live on Arduino side
+                    time.sleep(0.1)
+                self.arduino.set_tracking(False)
+                return State.IDLE
 
             case State.CALMING:
                 print("Entered CALMING state!")
