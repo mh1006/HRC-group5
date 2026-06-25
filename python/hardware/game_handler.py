@@ -120,10 +120,12 @@ class ColorGame:
     def _on_correct(self):
         self.arduino.set_emotion(Emotion.HAPPY)
         time.sleep(0.5)
+        # TODO: play sound?
 
     def _on_wrong(self):
         self.arduino.set_emotion(Emotion.SAD)
         time.sleep(1.0)
+        # TODO: play sound
 
     def _on_win(self):
         self.arduino.set_emotion(Emotion.HAPPY)
