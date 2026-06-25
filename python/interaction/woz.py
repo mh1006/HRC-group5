@@ -14,6 +14,7 @@ l	LISTENING
 e	ENGAGED
 p	PLAYING
 c	CALMING
+g	GOODBYE
 r	ERROR
 """
 
@@ -43,6 +44,7 @@ class WozOverride:
         "e": "ENGAGED",
         "p": "PLAYING",
         "c": "CALMING",
+        "g": "GOODBYE",
         "r": "ERROR",
     }
 

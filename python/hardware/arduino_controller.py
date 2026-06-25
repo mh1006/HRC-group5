@@ -31,6 +31,7 @@ class Emotion(str, Enum):
     SAD       = "SAD"
     ANGRY     = "ANGRY"
     SURPRISED = "SURPRISED"   # sketch maps "SURPRISED" → SUPRISED internally
+    RAINBOW   = "RAINBOW"
 
 
 class CommandType(str, Enum):
@@ -235,6 +236,12 @@ class ArduinoController:
         """Return to NEUTRAL — Arduino will auto-blink and wait."""
         self.set_emotion(Emotion.NEUTRAL)
         self.set_tracking(False)
+
+    def on_goodbye(self):
+        """Person leaving — happy eyes, rainbow body, track them out."""
+        self.set_emotion(Emotion.RAINBOW)
+        self.set_tracking(True)
+        # TODO: play goodbye/byeee sound
 
     def on_error(self):
         """Something went wrong — ANGRY face as a visual cue."""
