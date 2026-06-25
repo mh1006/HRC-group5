@@ -221,6 +221,8 @@ class ArduinoController:
         """Child responded — switch to HAPPY."""
         self.set_emotion(Emotion.HAPPY)
         self.set_tracking(True)
+        #TODO: play sound
+
 
     def on_playing(self):
         """Game started — stay HAPPY (tracking + dancing handled on Arduino)."""
@@ -231,6 +233,7 @@ class ArduinoController:
         """Stress detected — switch to NEUTRAL/SAD to mirror calm."""
         self.set_emotion(Emotion.SAD)
         self.set_tracking(True)
+        # TODO: play sound
 
     def on_idle(self):
         """Return to NEUTRAL — Arduino will auto-blink and wait."""

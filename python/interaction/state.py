@@ -85,7 +85,6 @@ class StateMachine:
                 self.retries = 0
                 self.engagement_count += 1  # track how many times child has responded
                 self.arduino.on_engaged()        # HAPPY eyes + face tracking 
-                # TODO: play sound
                 if self.engagement_count >= 2:
                     self.engagement_count = 0
                     return State.PLAYING   # they're engaged enough, start the game
@@ -120,8 +119,7 @@ class StateMachine:
                 print("Entered CALMING state!")
                 self.retries = 0
                 self.arduino.on_calming()        # SAD eyes (mirrors calm)
-                # TODO: play sound
-                # TODO: game?/send to arduino
+                # TODO: init game?
                 return State.ATTRACTING
 
             case State.ERROR:
