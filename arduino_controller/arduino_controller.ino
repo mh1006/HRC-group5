@@ -182,19 +182,26 @@ void run_emotions(){
 // ============================================
 
 // Proportional gain: how aggressively the head chases the face.
-// 0.1 means a 160px error (half the screen) moves the servo 16°. 
-// TODO: Tune as needed.
+// 0.1 means a 160px error (half the screen) moves the servo 16°.
 #define TRACKING_GAIN 0.5f
+// Pixel deadband: ignore face offsets smaller than this to suppress sensor noise.
+// Raise if the head still jitters when the person is still; lower if tracking feels sluggish.
+// IF HEAD TWITCHES INCREASE TO 18 or 20. IF TOO SLOW TO REACT WHEN SOMEONE ACTUALLY MOVES DROP TO 8.
+#define TRACKING_DEADBAND 12
 
 void track_face() {
   if (face_detected) {
     // HuskyLens resolution: 320×240, so screen centre is (160, 120).
     // Horizontal: face left of centre → servo turns left (target decreases).
     // Vertical:   face above centre  → servo tilts up  (target increases).
-    servo_horizontal_target = constrain(
-      servo_horizontal_default_pos - (face.xCenter - 160) * TRACKING_GAIN, 0, 180);
-    servo_vertical_target = constrain(
-      servo_vertical_default_pos + (face.yCenter - 120) * TRACKING_GAIN, 0, 180);
+    int dx = face.xCenter - 160;
+    int dy = face.yCenter - 120;
+    if (abs(dx) > TRACKING_DEADBAND)
+      servo_horizontal_target = constrain(
+        servo_horizontal_default_pos - dx * TRACKING_GAIN, 0, 180);
+    if (abs(dy) > TRACKING_DEADBAND)
+      servo_vertical_target = constrain(
+        servo_vertical_default_pos + dy * TRACKING_GAIN, 0, 180);
   } else {
     // No face visible — drift back to default so the robot looks forward.
     servo_horizontal_target = servo_horizontal_default_pos;
