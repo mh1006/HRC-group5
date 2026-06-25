@@ -102,7 +102,7 @@ class StateMachine:
                 self.arduino.on_calming()        # SAD eyes (mirrors calm)
                 # TODO: play sound
                 # TODO: game?/send to arduino
-                return State.IDLE
+                return State.ATTRACTING
 
             case State.ERROR:
                 print("Entered ERROR state!")
