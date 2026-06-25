@@ -1,3 +1,24 @@
 project-631e036d-75af-4f9e-b4b-44751f4edea7.json
 .vscode
 __pycache__/
+.gitignore
+/arduino_controller/Arduino simulator.sim1
+/Arduino-MemoryFree-master.zip
+/arduino_controller/build/arduino.avr.uno/arduino_controller.ino.eep
+/arduino_controller/build/arduino.avr.uno/arduino_controller.ino.elf
+/arduino_controller/build/arduino.avr.uno/arduino_controller.ino.hex
+/arduino_controller/build/arduino.avr.uno/arduino_controller.ino.with_bootloader.bin
+/arduino_controller/build/arduino.avr.uno/arduino_controller.ino.with_bootloader.hex
+/arduino_legacy/Arduino_legacy_code/build/arduino.avr.uno/Arduino_serial_code.ino.eep
+/arduino_legacy/Arduino_legacy_code/build/arduino.avr.uno/Arduino_serial_code.ino.elf
+/arduino_legacy/Arduino_legacy_code/build/arduino.avr.uno/Arduino_serial_code.ino.hex
+/arduino_legacy/Arduino_legacy_code/build/arduino.avr.uno/Arduino_serial_code.ino.with_bootloader.bin
+/arduino_legacy/Arduino_legacy_code/build/arduino.avr.uno/Arduino_serial_code.ino.with_bootloader.hex
+/Grove_LCD_RGB_Backlight-master.zip
+/Grove_Serial_MP3_Player_V2.0-master.zip
+/.idea/HRC-group5.iml
+/HUSKYLENS.zip
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/inspectionProfiles/profiles_settings.xml
+/.idea/vcs.xml

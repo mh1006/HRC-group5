@@ -128,7 +128,7 @@ void loop() {
     // The neopixels library does not allow interrupts, causing glitches in the movement, so these need to be done on alternate loops.
     if (tick % 2 == 0){
       run_emotions();
-    } else{
+    } else
       move_servos();
     }
     if (huskylens_connected) husky_lens();
@@ -187,7 +187,7 @@ void run_emotions(){
 // Pixel deadband: ignore face offsets smaller than this to suppress sensor noise.
 // Raise if the head still jitters when the person is still; lower if tracking feels sluggish.
 // IF HEAD TWITCHES INCREASE TO 18 or 20. IF TOO SLOW TO REACT WHEN SOMEONE ACTUALLY MOVES DROP TO 8.
-#define TRACKING_DEADBAND 12
+#define TRACKING_DEADBAND 8
 
 void track_face() {
   if (face_detected) {
@@ -201,7 +201,7 @@ void track_face() {
         servo_horizontal_default_pos - dx * TRACKING_GAIN, 0, 180);
     if (abs(dy) > TRACKING_DEADBAND)
       servo_vertical_target = constrain(
-        servo_vertical_default_pos + dy * TRACKING_GAIN, 0, 180);
+        servo_vertical_default_pos - dy * TRACKING_GAIN, 0, 180);
   } else {
     // No face visible — drift back to default so the robot looks forward.
     servo_horizontal_target = servo_horizontal_default_pos;
