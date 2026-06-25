@@ -165,6 +165,29 @@ class ArduinoController:
         """Enable or disable face-tracking servos on the Arduino."""
         self.send(("TRACKING", "ON" if enabled else "OFF"))
 
+    # ── Servo gesture helpers ──────────────────────────────────────────────────
+
+    def look_forward(self):
+        """Return to neutral forward-facing position."""
+        self.set_servo(90, 30)
+
+    def look_up(self):
+        """Tilt head up — expectant/noticing."""
+        self.set_servo(90, 70)
+
+    def look_down(self):
+        """Tilt head down — sad/thinking."""
+        self.set_servo(90, 5)
+
+    def nod(self, count: int = 2):
+        """Up-down nod gesture — yes/correct. Blocks for ~count seconds."""
+        for _ in range(count):
+            self.set_servo(90, 70)
+            time.sleep(0.3)
+            self.set_servo(90, 10)
+            time.sleep(0.3)
+        self.look_forward()
+
     def set_servo(self, horizontal: int, vertical: int):
         """
         Send a SERVO command to set both axes at once.
@@ -223,35 +246,40 @@ class ArduinoController:
     # ── Convenience wrappers for each state in your state machine ──────────────
 
     def on_attracting(self):
-        """Robot notices someone — show SURPRISED, look alert."""
+        """Robot notices someone — look up alert, SURPRISED eyes, start tracking."""
+        self.look_up()
         self.set_emotion(Emotion.SURPRISED)
         self.set_tracking(True)
 
     def on_engaged(self):
-        """Child responded — switch to HAPPY."""
+        """Child responded — look up expectantly, HAPPY eyes, face tracking."""
+        self.look_up()
         self.set_emotion(Emotion.HAPPY)
         self.set_tracking(True)
-        #TODO: play sound
-
+        # TODO: play sound
 
     def on_playing(self):
-        """Game started — stay HAPPY (tracking + dancing handled on Arduino)."""
+        """Game started — look forward, HAPPY eyes, disable tracking (game controls head)."""
+        self.look_forward()
         self.set_emotion(Emotion.HAPPY)
         self.set_tracking(False)
 
     def on_calming(self):
-        """Stress detected — switch to NEUTRAL/SAD to mirror calm."""
+        """Stress detected — look down gently, SAD eyes, keep tracking."""
+        self.look_down()
         self.set_emotion(Emotion.SAD)
         self.set_tracking(True)
         self.set_audio(1)
 
     def on_idle(self):
-        """Return to NEUTRAL — Arduino will auto-blink and wait."""
+        """Return to neutral — look forward, NEUTRAL eyes, tracking off."""
+        self.look_forward()
         self.set_emotion(Emotion.NEUTRAL)
         self.set_tracking(False)
 
     def on_goodbye(self):
-        """Person leaving — happy eyes, rainbow body, track them out."""
+        """Person leaving — look up to follow them out, RAINBOW eyes, tracking on."""
+        self.look_up()
         self.set_emotion(Emotion.RAINBOW)
         self.set_tracking(True)
         # TODO: play goodbye/byeee sound
