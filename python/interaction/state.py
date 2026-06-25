@@ -35,18 +35,24 @@ class StateMachine:
         self.retries = 0
         self.game_retries = 0
         self.engagement_count = 0
+        self.last_state = State.IDLE
 
     def execute(self, state) -> State:
+        if state != State.IDLE:
+            self.last_state = state
         match state:
             case State.IDLE:
-                print("Entered IDLE state!")
-                self.engagement_count = 0
-                self.arduino.on_idle()
+                if self.last_state is not State.IDLE:
+                    print("Entered IDLE state!")
+                    self.engagement_count = 0
+                    self.arduino.on_idle()
+
                 for line in self.arduino.drain_log():
                     face = self.arduino.parse_face(line)
                     if face and face["width"] >= FACE_PROXIMITY_THRESHOLD:
                         return State.ATTRACTING
                 time.sleep(0.1)
+                self.last_state = state
                 return State.IDLE
 
             case State.ATTRACTING:
