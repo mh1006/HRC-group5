@@ -38,6 +38,7 @@ class CommandType(str, Enum):
     EYES    = "EYES"
     SERVO   = "SERVO"
     BUTTONS = "BUTTONS"  # game color display: 3 chars, one per eye matrix + LCD
+    AUDIO   = "AUDIO"
 
 
 # Maps a game color name to the single-char code Arduino's char_to_color() expects
@@ -173,6 +174,15 @@ class ArduinoController:
         """
         self.send((CommandType.SERVO, f"({horizontal},{vertical})"))
 
+    def set_audio(self, audio_index: int):
+        """
+        Send a SERVO command to set both axes at once.
+        horizontal: 0–180 (left/right pan, SERVO_PIN_1)
+        vertical:   0–180 (up/down tilt, SERVO_PIN_2)
+        Arduino parses the tuple format: SERVO,(h,v);
+        """
+        self.send((CommandType.AUDIO, str(audio_index)))
+
     def chain(self, **kwargs):
         """
         Send multiple commands in one packet.
@@ -233,7 +243,7 @@ class ArduinoController:
         """Stress detected — switch to NEUTRAL/SAD to mirror calm."""
         self.set_emotion(Emotion.SAD)
         self.set_tracking(True)
-        # TODO: play sound
+        self.set_audio(1)
 
     def on_idle(self):
         """Return to NEUTRAL — Arduino will auto-blink and wait."""
