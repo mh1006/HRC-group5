@@ -119,19 +119,18 @@ class ColorGame:
 
     def _on_correct(self):
         self.arduino.set_emotion(Emotion.HAPPY)
-        self.arduino.nod()          # up-down "yes!" gesture (~1.2 s)
+        self.arduino.play_animation("NOD")
         # TODO: play sound?
 
     def _on_wrong(self):
-        self.arduino.look_down()    # sad/ashamed head drop
         self.arduino.set_emotion(Emotion.SAD)
+        self.arduino.play_animation("DROOP")
         time.sleep(1.0)
-        self.arduino.look_forward()
         # TODO: play sound
 
     def _on_win(self):
         self.arduino.set_emotion(Emotion.HAPPY)
-        self.arduino.nod(count=3)   # enthusiastic triple nod
+        self.arduino.play_animation("NOD")
         # TODO: play victory sound
 
 
@@ -236,7 +235,6 @@ class SequenceGame:
         self.arduino.set_button_colors(colors)
 
     def _show_sequence(self, sequence: list, button_colors: list):
-        self.arduino.look_down()        # "watch what I do" — head tilts down toward buttons
         self.arduino.set_emotion(Emotion.SURPRISED)
         time.sleep(0.6)
 
@@ -254,7 +252,7 @@ class SequenceGame:
                 time.sleep(0.1)
 
         self.arduino.set_button_colors(button_colors)  # reveal the round's button layout
-        self.arduino.look_up()          # "your turn" — head tilts up toward child
+        self.arduino.look_up()
         self.arduino.set_emotion(Emotion.NEUTRAL)
         time.sleep(0.3)
         self.arduino.drain_log()    # discard any presses made during the demo
@@ -271,19 +269,18 @@ class SequenceGame:
 
     def _on_correct(self):
         self.arduino.set_emotion(Emotion.HAPPY)
-        self.arduino.nod()          # up-down "yes!" gesture
+        self.arduino.play_animation("NOD")
         time.sleep(0.5)
 
     def _on_wrong(self):
-        self.arduino.look_down()    # sad head drop
         self.arduino.set_emotion(Emotion.SAD)
+        self.arduino.play_animation("DROOP")
         # TODO: sound?
         time.sleep(2.0)
-        self.arduino.look_forward()
 
     def _on_win(self):
         self.arduino.set_emotion(Emotion.HAPPY)
-        self.arduino.nod(count=3)   # enthusiastic triple nod
+        self.arduino.play_animation("NOD")
         # TODO: play victory sound
 
 

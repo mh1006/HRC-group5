@@ -175,18 +175,12 @@ class ArduinoController:
         """Tilt head up — expectant/noticing."""
         self.set_servo(90, 70)
 
-    def look_down(self):
-        """Tilt head down — sad/thinking."""
-        self.set_servo(90, 5)
-
-    def nod(self, count: int = 2):
-        """Up-down nod gesture — yes/correct. Blocks for ~count seconds."""
-        for _ in range(count):
-            self.set_servo(90, 70)
-            time.sleep(0.3)
-            self.set_servo(90, 10)
-            time.sleep(0.3)
-        self.look_forward()
+    def play_animation(self, name: str):
+        """
+        Trigger a named servo animation on the Arduino (non-blocking).
+        Available: NOD, DROOP, IDLE1
+        """
+        self.send(("ANIMATE", name))
 
     def set_servo(self, horizontal: int, vertical: int):
         """
@@ -265,16 +259,16 @@ class ArduinoController:
         self.set_tracking(False)
 
     def on_calming(self):
-        """Stress detected — look down gently, SAD eyes, keep tracking."""
-        self.look_down()
+        """Stress detected — droop animation, SAD eyes, keep tracking."""
         self.set_emotion(Emotion.SAD)
+        self.play_animation("DROOP")
         self.set_tracking(True)
         self.set_audio(1)
 
     def on_idle(self):
-        """Return to neutral — look forward, NEUTRAL eyes, tracking off."""
-        self.look_forward()
+        """Return to neutral — gentle look-around animation, NEUTRAL eyes, tracking off."""
         self.set_emotion(Emotion.NEUTRAL)
+        self.play_animation("IDLE1")
         self.set_tracking(False)
 
     def on_goodbye(self):
