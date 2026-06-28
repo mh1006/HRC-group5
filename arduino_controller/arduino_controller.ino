@@ -5,6 +5,7 @@
 #include "audio.h"
 #include "buttons.h"
 #include "led_matrices.h"
+#include "animation.h"
 
 #include <MemoryFree.h>
 
@@ -12,8 +13,8 @@
 long timer;
 long tick = 0;
 long timer_comm;
-long timer_test;
 uint16_t rainbow_timer;
+long rainbow_start;
 
 // Servos
 float smoothing_speed = 0.05;
@@ -22,6 +23,8 @@ float servo_horizontal_default_pos = 90, servo_vertical_default_pos = 30;
 float servo_horizontal_pos = servo_horizontal_default_pos, servo_vertical_pos = servo_vertical_default_pos; 
 float servo_horizontal_target = servo_horizontal_pos, servo_vertical_target = servo_vertical_pos;
 float servo_horizontal_speed = 0, servo_vertical_speed = 0;
+
+Animation* current_animation = nullptr;
 
 // Huskylens
 HUSKYLENS huskylens;
@@ -66,6 +69,34 @@ const byte surprised[] PROGMEM = { B1111, B11111, B111111, B1111111, B111111, B1
 const byte happy[]   PROGMEM = { B1111, B11111, B111111, B1100011, B000000, B00000, B0000 };
 const byte angry[]   PROGMEM = { B0000, B10000, B110000, B1111000, B111110, B11111, B1111 };
 const byte sad[]     PROGMEM = { B0000, B00001, B0000011, B0001111, B011111, B11111, B1111 };
+
+// Different servo animations
+const AnimationStep droop_steps[] PROGMEM = {
+          {90, 0, 4000},
+          {0, 0, 3000}
+};
+Animation droop(droop_steps, 2);
+
+const AnimationStep idle_1_steps[] PROGMEM = {
+          {120, 45, 2000},
+          {60, 45, 2000},
+          {90, 30, 2000},
+          {120, 45, 2000},
+          {90, 30, 2000},
+          {60, 45, 2000},
+          {90, 30, 1500},
+          {90, 45, 3000}
+};
+Animation idle_1(idle_1_steps, 8);
+
+const AnimationStep nod_steps[] PROGMEM = {
+          {90, 0, 3000},
+          {90, 90, 3000},
+          {90, 0, 3000},
+          {90, 90, 3000},
+          {90, 0, 3000}
+};
+Animation nod(nod_steps, 5);
 
 void setup() {
   Serial.begin(115200);
@@ -128,7 +159,12 @@ void loop() {
     // The neopixels library does not allow interrupts, causing glitches in the movement, so these need to be done on alternate loops.
     if (tick % 2 == 0){
       run_emotions();
-    } else
+    } else {
+      if (current_animation != nullptr && current_animation->has_update()){
+        AnimationStep s = current_animation->currentStep();
+        servo_horizontal_target = s.x;
+        servo_vertical_target   = s.y;
+      }
       move_servos();
     }
     if (huskylens_connected) husky_lens();
@@ -145,10 +181,15 @@ void loop() {
 void run_emotions(){
   led_matrices.clear();
   switch (eye_emotion) {
+    // Neutral means the robot is idle
     case NEUTRAL:
       if (millis() % 5000 < 150) display_matrices(blink1, neutral_color);
       else if (millis() % 5000 < 300) display_matrices(blink2, neutral_color);
       else if (millis() % 5000 < 450) display_matrices(blink1, neutral_color);
+      else if (millis() % 20000 < 100) {
+        eye_emotion = RAINBOW;
+        rainbow_start = millis();
+      }
       else display_matrices(neutral, neutral_color);
       break;
 
@@ -168,6 +209,7 @@ void run_emotions(){
       display_matrices(surprised, neutral_color);
       break;
     case RAINBOW:
+      if((millis() - rainbow_start) > 7000) eye_emotion = NEUTRAL;
       for (int i = 0; i < LED_COUNT; i++) {
         led_matrices.setPixelColor(i, led_matrices.gamma32(led_matrices.ColorHSV(rainbow_timer + (i * 65536L / LED_COUNT), 255, RAINBOW_BRIGHTNESS)));
       }
@@ -177,11 +219,18 @@ void run_emotions(){
   led_matrices.show();
 }
 
+// Set the servo animation
+void set_current_animation(Animation* anim) {
+  current_animation = anim;
+  current_animation->play();
+}
+
 // ============================================
 // --------------- Face tracking --------------
 // ============================================
 
-// Proportional gain: how aggressively the head chases the face.
+// Proportional gain: how a
+// ggressively the head chases the face.
 // 0.1 means a 160px error (half the screen) moves the servo 16°.
 #define TRACKING_GAIN 0.5f
 // Pixel deadband: ignore face offsets smaller than this to suppress sensor noise.
@@ -279,6 +328,12 @@ void receive_communication() {
         Serial.print(F("Free memory: "));
         Serial.print(freeMemory());
         Serial.println(F(" bytes"));
+    } else if(strcmp(cmd, "ANIMATE") == 0) {
+        Serial.print(F("Setting animation to:"));
+        Serial.println(value);
+        if (strcmp(value, "DROOP") == 0) set_current_animation(&droop); 
+        else if (strcmp(value, "IDLE1") == 0) set_current_animation(&idle_1);
+        else if (strcmp(value, "NOD") == 0) set_current_animation(&nod);
     }
     data = semicolon + 1;
   }
