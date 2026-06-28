@@ -279,7 +279,6 @@ class ArduinoController:
     def on_idle(self):
         """Return to neutral — gentle look-around animation, NEUTRAL eyes, tracking off."""
         self.set_emotion(Emotion.NEUTRAL)
-        self.play_animation("IDLE1")
         self.set_tracking(False)
         self.set_audio(Sound.IDLE)
 
