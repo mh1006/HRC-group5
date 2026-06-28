@@ -67,7 +67,11 @@ class StateMachine:
                 intent_name = result["intent_name"]
 
                 if not intent_name:
-                    time.sleep(1)
+                    self.retries += 1
+                    if self.retries >= 4:
+                        self.retries = 0
+                        return State.IDLE   # give up, wait for next passerby
+                    time.sleep(2)
                     return State.LISTENING
 
                 try:
@@ -97,6 +101,7 @@ class StateMachine:
                 won = FullGame(self.arduino).run()
                 if won:
                     print("CONGRATS! YOU WON!")
+                    self.arduino.on_engaged()
                     return State.LISTENING
                 else:
                     print("YOU LOST!")
@@ -119,7 +124,7 @@ class StateMachine:
                 print("Entered CALMING state!")
                 self.retries = 0
                 self.arduino.on_calming()        # SAD eyes (mirrors calm)
-                # TODO: init game?
+                time.sleep(4.0)
                 return State.ATTRACTING
 
             case State.ERROR:

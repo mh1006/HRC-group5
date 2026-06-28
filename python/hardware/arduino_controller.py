@@ -248,7 +248,7 @@ class ArduinoController:
     def on_attracting(self):
         """Robot notices someone — look up alert, SURPRISED eyes, start tracking."""
         self.look_up()
-        self.set_emotion(Emotion.SURPRISED)
+        self.set_emotion(Emotion.RAINBOW)
         self.set_tracking(True)
 
     def on_engaged(self):
@@ -286,6 +286,7 @@ class ArduinoController:
 
     def on_error(self):
         """Something went wrong — ANGRY face as a visual cue."""
+        self.look_down()
         self.set_emotion(Emotion.ANGRY)
         self.set_tracking(False)
 
