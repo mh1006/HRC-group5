@@ -29,6 +29,12 @@ struct Color{
   }
 };
 
+struct AnimationStep {
+  float x;
+  float y;
+  unsigned long timeMs;
+};
+
 Color char_to_color(char color_char){
     switch(color_char) {
       case 'R': return {255, 0, 0};

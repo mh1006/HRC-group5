@@ -31,6 +31,7 @@ enum Emotion { NEUTRAL, SURPRISED, HAPPY, ANGRY, SAD, RAINBOW};
 // --- Servos ---
 extern Servo servo_horizontal, servo_vertical;
 extern float servo_horizontal_pos, servo_vertical_pos, servo_horizontal_default_pos, servo_vertical_default_pos, servo_horizontal_target, servo_vertical_target, servo_horizontal_speed, servo_vertical_speed;
+
 // > Anti-jitter
 extern float smoothing_speed;
 
