@@ -33,6 +33,21 @@ class Emotion(str, Enum):
     SURPRISED = "SURPRISED"   # sketch maps "SURPRISED" → SUPRISED internally
     RAINBOW   = "RAINBOW"
 
+# TODO: revisit after we have audio
+class Sound(int, Enum):
+    """
+    Maps named sounds to the SD card file index the Arduino expects.
+    File order on the SD card must match these numbers (001.mp3, 002.mp3, …).
+    """
+    HAPPY       = 1
+    SAD         = 2
+    IDLE        = 3
+    ATTRACT     = 4
+    GOODBYE     = 5
+    CONFUSED    = 6
+    CORRECT     = 7
+    WRONG       = 8
+
 
 class CommandType(str, Enum):
     EYES    = "EYES"
@@ -191,14 +206,9 @@ class ArduinoController:
         """
         self.send((CommandType.SERVO, f"({horizontal},{vertical})"))
 
-    def set_audio(self, audio_index: int):
-        """
-        Send a SERVO command to set both axes at once.
-        horizontal: 0–180 (left/right pan, SERVO_PIN_1)
-        vertical:   0–180 (up/down tilt, SERVO_PIN_2)
-        Arduino parses the tuple format: SERVO,(h,v);
-        """
-        self.send((CommandType.AUDIO, str(audio_index)))
+    def set_audio(self, sound: Sound):
+        """Play a named sound from the Arduino's SD card."""
+        self.send((CommandType.AUDIO, str(sound.value)))
 
     def chain(self, **kwargs):
         """
@@ -244,13 +254,14 @@ class ArduinoController:
         self.look_up()
         self.set_emotion(Emotion.RAINBOW)
         self.set_tracking(True)
+        self.set_audio(Sound.ATTRACT)
 
     def on_engaged(self):
         """Child responded — look up expectantly, HAPPY eyes, face tracking."""
         self.look_up()
         self.set_emotion(Emotion.HAPPY)
         self.set_tracking(True)
-        # TODO: play sound
+        self.set_audio(Sound.HAPPY)
 
     def on_playing(self):
         """Game started — look forward, HAPPY eyes, disable tracking (game controls head)."""
@@ -263,26 +274,28 @@ class ArduinoController:
         self.set_emotion(Emotion.SAD)
         self.play_animation("DROOP")
         self.set_tracking(True)
-        self.set_audio(1)
+        self.set_audio(Sound.SAD)
 
     def on_idle(self):
         """Return to neutral — gentle look-around animation, NEUTRAL eyes, tracking off."""
         self.set_emotion(Emotion.NEUTRAL)
         self.play_animation("IDLE1")
         self.set_tracking(False)
+        self.set_audio(Sound.IDLE)
 
     def on_goodbye(self):
         """Person leaving — look up to follow them out, RAINBOW eyes, tracking on."""
         self.look_up()
         self.set_emotion(Emotion.RAINBOW)
         self.set_tracking(True)
-        # TODO: play goodbye/byeee sound
-
+        self.set_audio(Sound.GOODBYE)
+        
     def on_error(self):
         """Something went wrong — ANGRY face as a visual cue."""
-        self.look_down()
+        self.play_animation("DROOP")
         self.set_emotion(Emotion.ANGRY)
         self.set_tracking(False)
+        self.set_audio(Sound.CONFUSED)
 
     # ── Utility ────────────────────────────────────────────────────────────────
 

@@ -22,7 +22,7 @@ each round 3 colors are randomly drawn from the full palette and assigned to the
 
 import random
 import time
-from python.hardware.arduino_controller import ArduinoController, Emotion
+from python.hardware.arduino_controller import ArduinoController, Emotion, Sound
 
 COLORS = ["RED", "GREEN", "BLUE", "YELLOW", "CYAN", "PURPLE", "WHITE"]
 
@@ -120,18 +120,17 @@ class ColorGame:
     def _on_correct(self):
         self.arduino.set_emotion(Emotion.HAPPY)
         self.arduino.play_animation("NOD")
-        # TODO: play sound?
+        self.arduino.set_audio(Sound.CORRECT)
 
     def _on_wrong(self):
         self.arduino.set_emotion(Emotion.SAD)
         self.arduino.play_animation("DROOP")
+        self.arduino.set_audio(Sound.WRONG)
         time.sleep(1.0)
-        # TODO: play sound
 
     def _on_win(self):
         self.arduino.set_emotion(Emotion.HAPPY)
         self.arduino.play_animation("NOD")
-        # TODO: play victory sound
 
 
 class SequenceGame:
@@ -270,19 +269,19 @@ class SequenceGame:
     def _on_correct(self):
         self.arduino.set_emotion(Emotion.HAPPY)
         self.arduino.play_animation("NOD")
+        self.arduino.set_audio(Sound.CORRECT)
         time.sleep(0.5)
 
     def _on_wrong(self):
         self.arduino.set_emotion(Emotion.SAD)
         self.arduino.play_animation("DROOP")
-        # TODO: sound?
+        self.arduino.set_audio(Sound.WRONG)  
         time.sleep(2.0)
 
     def _on_win(self):
         self.arduino.set_emotion(Emotion.HAPPY)
         self.arduino.play_animation("NOD")
-        # TODO: play victory sound
-
+        
 
 class FullGame:
     """
