@@ -17,7 +17,7 @@ uint16_t rainbow_timer;
 long rainbow_start;
 
 // Servos
-float smoothing_speed = 0.05;
+float smoothing_speed = 0.02;
 Servo servo_horizontal, servo_vertical;
 float servo_horizontal_default_pos = 90, servo_vertical_default_pos = 30;
 float servo_horizontal_pos = servo_horizontal_default_pos, servo_vertical_pos = servo_vertical_default_pos; 

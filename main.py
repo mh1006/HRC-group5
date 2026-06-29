@@ -5,7 +5,7 @@ from python.interaction.woz import WozOverride
 
 # Check which COM you are conected to in the arduino IDE
 # arduino_controller = ArduinoController(port="COM4", baud=115200)
-arduino_controller = ArduinoController(port="/dev/cu.usbmodem1101", baud=115200)
+arduino_controller = ArduinoController(port="/dev/cu.usbmodem21101", baud=115200)
 
 PROJECT_ID = 'project-631e036d-75af-4f9e-b4b'
 SESSION_ID = '3'
