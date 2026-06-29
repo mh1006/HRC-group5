@@ -247,6 +247,7 @@ void set_current_animation(Animation* anim) {
 
 void track_face() {
   if (face_detected) {
+    current_animation = nullptr;
     // HuskyLens resolution: 320×240, so screen centre is (160, 120).
     // Horizontal: face left of centre → servo turns left (target decreases).
     // Vertical:   face above centre  → servo tilts up  (target increases).
