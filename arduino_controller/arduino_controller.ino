@@ -186,14 +186,14 @@ void run_emotions(){
       if (millis() % 5000 < 150) display_matrices(blink1, neutral_color);
       else if (millis() % 5000 < 300) display_matrices(blink2, neutral_color);
       else if (millis() % 5000 < 450) display_matrices(blink1, neutral_color);
-      else if (millis() % 20000 < 100) {
-        eye_emotion = RAINBOW;
-        rainbow_start = millis();
-      }
-      if (millis() % 30010 < 100) {
-        eye_emotion = RAINBOW;
-        rainbow_start = millis();
-      }
+      // else if (millis() % 20000 < 100) {
+      //   eye_emotion = RAINBOW;
+      //   rainbow_start = millis();
+      // }
+//       if (millis() % 30010 < 100) {
+//         eye_emotion = RAINBOW;
+//         rainbow_start = millis();
+//       }
       if (millis() % 20010 < 100) {
         set_current_animation(&idle_1);
       }
