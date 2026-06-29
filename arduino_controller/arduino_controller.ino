@@ -190,6 +190,13 @@ void run_emotions(){
         eye_emotion = RAINBOW;
         rainbow_start = millis();
       }
+      if (millis() % 30010 < 100) {
+        eye_emotion = RAINBOW;
+        rainbow_start = millis();
+      }
+      if (millis() % 20010 < 100) {
+        set_current_animation(&idle_1);
+      }
       else display_matrices(neutral, neutral_color);
       break;
 
