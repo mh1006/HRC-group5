@@ -251,49 +251,56 @@ class ArduinoController:
 
     def on_attracting(self):
         """Robot notices someone — look up alert, SURPRISED eyes, start tracking."""
-        self.look_up()
+        print("Running on attracting!")
+        self.set_tracking(False)
         self.set_emotion(Emotion.RAINBOW)
-        self.set_tracking(True)
+        self.look_up()
         self.set_audio(Sound.ATTRACT)
+        time.sleep(7.0)
+        self.set_tracking(True)
 
     def on_engaged(self):
         """Child responded — look up expectantly, HAPPY eyes, face tracking."""
-        self.look_up()
+        self.set_tracking(False)
         self.set_emotion(Emotion.HAPPY)
-        self.set_tracking(True)
+        self.look_up()
         self.set_audio(Sound.HAPPY)
+        time.sleep(7.0)
+        self.set_tracking(True)
 
     def on_playing(self):
         """Game started — look forward, HAPPY eyes, disable tracking (game controls head)."""
+        self.set_tracking(False)
         self.look_forward()
         self.set_emotion(Emotion.HAPPY)
-        self.set_tracking(False)
 
     def on_calming(self):
-        """Stress detected — droop animation, SAD eyes, keep tracking."""
+        """Stress detected — droop animation, SAD eyes, tracking off so animation plays."""
+        self.set_tracking(False)
         self.set_emotion(Emotion.SAD)
         self.play_animation("DROOP")
-        self.set_tracking(True)
         self.set_audio(Sound.SAD)
+        time.sleep(7.0)
+        self.set_tracking(True)
 
     def on_idle(self):
         """Return to neutral — gentle look-around animation, NEUTRAL eyes, tracking off."""
         self.set_emotion(Emotion.NEUTRAL)
         self.set_tracking(False)
+        # TODO: play with some interval?
         self.set_audio(Sound.IDLE)
 
     def on_goodbye(self):
         """Person leaving — look up to follow them out, RAINBOW eyes, tracking on."""
-        self.look_up()
         self.set_emotion(Emotion.RAINBOW)
         self.set_tracking(True)
         self.set_audio(Sound.GOODBYE)
         
     def on_error(self):
         """Something went wrong — ANGRY face as a visual cue."""
+        self.set_tracking(False)
         self.play_animation("DROOP")
         self.set_emotion(Emotion.ANGRY)
-        self.set_tracking(False)
         self.set_audio(Sound.CONFUSED)
 
     # ── Utility ────────────────────────────────────────────────────────────────

@@ -86,12 +86,12 @@ class ColorGame:
         target_color = button_colors[target_index]
         time_limit = max(10.0, self.time_limit - self.round * 0.3)
 
-        self.arduino.drain_log()                  # discard stale presses from last round
+        self.arduino.drain_log()                   # discard stale presses from last round
         self.arduino.set_game_color(target_color)  # cue: flash target color solo
-        time.sleep(2.0)
+        time.sleep(4.0)                            # hold long enough for kids to register the color
         self.arduino.set_button_colors(button_colors)  # reveal the button layout
-        time.sleep(0.2)                           # give Arduino time to process and render
-        self.arduino.drain_log()                  # discard presses made during the cue
+        time.sleep(0.2)                            # give Arduino time to process and render
+        self.arduino.drain_log()                   # discard presses made during the cue
 
         print(f"[Game] Button colors: 0={button_colors[0]}, 1={button_colors[1]}, 2={button_colors[2]}")
         print(f"[Game] Target: button index {target_index} ({target_color})")
@@ -119,14 +119,20 @@ class ColorGame:
 
     def _on_correct(self):
         self.arduino.set_emotion(Emotion.HAPPY)
-        self.arduino.play_animation("NOD")
+        self.arduino.set_servo(90, 70)
         self.arduino.set_audio(Sound.CORRECT)
+        time.sleep(1.5)
+        self.arduino.look_forward()
+        self.arduino.set_game_color("OFF")  # clear so next round's cue color is obvious
+        time.sleep(0.5)
 
     def _on_wrong(self):
         self.arduino.set_emotion(Emotion.SAD)
-        self.arduino.play_animation("DROOP")
+        self.arduino.set_servo(90, 5)
         self.arduino.set_audio(Sound.WRONG)
-        time.sleep(1.0)
+        time.sleep(2.0)
+        self.arduino.set_game_color("OFF")
+        time.sleep(0.5)
 
     def _on_win(self):
         self.arduino.set_emotion(Emotion.HAPPY)
@@ -268,15 +274,17 @@ class SequenceGame:
 
     def _on_correct(self):
         self.arduino.set_emotion(Emotion.HAPPY)
-        self.arduino.play_animation("NOD")
+        self.arduino.set_servo(90, 70)   # quick head up
         self.arduino.set_audio(Sound.CORRECT)
-        time.sleep(0.5)
+        time.sleep(1.5)
+        self.arduino.look_forward()
 
     def _on_wrong(self):
         self.arduino.set_emotion(Emotion.SAD)
-        self.arduino.play_animation("DROOP")
-        self.arduino.set_audio(Sound.WRONG)  
+        self.arduino.set_servo(90, 5)    # quick head down
+        self.arduino.set_audio(Sound.WRONG)
         time.sleep(2.0)
+        self.arduino.look_forward()
 
     def _on_win(self):
         self.arduino.set_emotion(Emotion.HAPPY)
