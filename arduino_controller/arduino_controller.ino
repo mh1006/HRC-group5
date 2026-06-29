@@ -304,9 +304,9 @@ void receive_communication() {
       // Serial.print(F(", Setting servo 2 to: "));
       // Serial.println(servo_vertical_target);
     } else if (strcmp(cmd, "EYES") == 0) {
-      // Serial.print(F("Setting eye emotion to: "));
-      // Serial.println(value);
-      eye_emotion = string_to_emotion(value);
+      Emotion new_emotion = string_to_emotion(value);
+      if (new_emotion == RAINBOW) rainbow_start = millis();  // add this line
+      eye_emotion = new_emotion;
       run_emotions();
     } else if (strcmp(cmd, "AUDIO") == 0) {
       // Serial.print(F("Playing audio file: "));

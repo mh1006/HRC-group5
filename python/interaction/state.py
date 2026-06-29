@@ -59,7 +59,7 @@ class StateMachine:
             case State.ATTRACTING:
                 print("Entered Attracting state")
                 self.arduino.on_attracting()
-                playsound('sounds/chameleon_sound.mp3')
+                # playsound('sounds/chameleon_sound.mp3')
                 return State.LISTENING
 
             case State.LISTENING:
@@ -124,7 +124,7 @@ class StateMachine:
                 print("Entered CALMING state!")
                 self.retries = 0
                 self.arduino.on_calming()        # SAD eyes (mirrors calm)
-                time.sleep(4.0)
+                time.sleep(10.0)                 # hold long enough for DROOP animation (7s) + pause
                 return State.ATTRACTING
 
             case State.ERROR:
